@@ -1,0 +1,7 @@
+# Ignore ALL .env files everywhere
+**/.env
+*.env
+
+# Ignore huge folders
+**/node_modules
+**/dist
