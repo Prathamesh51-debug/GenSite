@@ -29,7 +29,7 @@ app.post('/api/stripe', express.raw({type: 'application/json'}), stripeWebhook)
 // DEBUG: Log when hitting the auth route
 app.all('/api/auth/{*any}', (req, res, next) => {
     console.log('Auth route accessed:', req.method, req.url);
-    return toNodeHandler(auth)(req, res, next);
+    return toNodeHandler(auth)(req, res);
 });
 
 app.use(express.json({limit: '50mb'}))
