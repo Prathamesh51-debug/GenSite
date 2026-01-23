@@ -35,19 +35,9 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
-{
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es6",
-    "outDir": "./dist",
-    "rootDir": "./",
-    "strict": false,            
-    "noImplicitAny": false,
-    "skipLibCheck": true,
-    "esModuleInterop": true
-  },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
-}
+
