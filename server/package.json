@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
   "build": "tsc",
-  "start": "node dist/index.js",
-  "dev": "nodemon src/index.ts"
- },
+  "start": "node dist/server.js", 
+  "dev": "nodemon server.ts"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -36,4 +36,18 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
+}
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": false,            
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
 }
