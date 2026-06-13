@@ -4,7 +4,7 @@ import Footer from '../components/Footer';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'sonner';
 import api from '@/configs/axios';
-
+import { CheckIcon, SparklesIcon, ArrowRightIcon } from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -16,66 +16,106 @@ interface Plan {
 }
 
 const Pricing = () => {
-
-    const {data: session} = authClient.useSession()
-  const [plans]=React.useState<Plan[]>(appPlans)
+  const { data: session } = authClient.useSession();
+  const [plans] = React.useState<Plan[]>(appPlans);
 
   const handlePurchase = async (planId: string) => {
-        try {
-            if(!session?.user) toast('Please login to purchase credits')
-            const {data} = await api.post('api/user/purchase-credits', {planId})
-            window.location.href = data.payment_link;
-        } catch (error: any) {
-            console.log(error);
-            toast.error(error?.response?.data?.message || error.message);
-        }
-  }
+    try {
+      if (!session?.user) toast('Please login to purchase credits');
+      const { data } = await api.post('api/user/purchase-credits', { planId });
+      window.location.href = data.payment_link;
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error.message);
+    }
+  };
+
   return (
-    <>
-       <div className='w-full max-w-5xl mx-auto z-20 max-md:px-4 min-h-[80vh]'>
-        <div className='text-center mt-16 animate-fade-in-down'>
-          <h2 className='text-gray-100 text-3xl font-medium'>Choose Your Plan</h2>
-          <p className='text-gray-400 text-sm max-w-md mx-auto mt-2'>Start for free ans scale up as you grow.Find the perfect plan for your content
-            creation needs.</p>
+    <div className="relative text-white overflow-hidden">
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-grid" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
+        <div className="absolute top-40 -right-20 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px] animate-aurora" style={{ animationDelay: '6s' }} />
+      </div>
+
+      <div className="w-full max-w-6xl mx-auto px-4 min-h-[80vh]">
+        {/* Header */}
+        <div className="text-center mt-20 animate-fade-in-down">
+          <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Pricing</p>
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mt-3">
+            Simple, <span className="text-gradient">transparent</span> pricing
+          </h2>
+          <p className="text-gray-400 text-base max-w-md mx-auto mt-4">
+            Start for free and scale up as you grow. Find the perfect plan for your website-building needs.
+          </p>
         </div>
-        <div className='pt-14 py-4 px-4 '>
-          <div className='grid grid-cols-1 md:grid-cols-3 flex-wrap gap-4'>
-                        {plans.map((plan, idx) => (
-                            <div key={idx} className={`p-6 bg-black/20 ring ring-indigo-950 mx-auto w-full max-w-sm rounded-lg text-white shadow-lg hover:ring-indigo-500 hover:bg-black/30 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/20 smooth-transition animate-scale-in`} style={{animationDelay: `${idx * 0.15}s`}}>
-                                <h3 className="text-xl font-bold">{plan.name}</h3>
-                                <div className="my-2">
-                                    <span className="text-4xl font-bold">{plan.price}</span>
-                                    <span className="text-gray-300"> / {plan.credits} credits</span>
-                                </div>
 
-                                <p className="text-gray-300 mb-6">{plan.description}</p>
+        {/* Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 items-stretch">
+          {plans.map((plan, idx) => {
+            const popular = plan.name.toLowerCase() === 'pro';
+            return (
+              <div
+                key={idx}
+                className={`relative animate-fade-in-up ${popular ? 'md:-mt-4 md:mb-4' : ''}`}
+                style={{ animationDelay: `${idx * 0.12}s` }}
+              >
+                {/* gradient border for popular */}
+                <div className={`h-full rounded-2xl p-px ${popular ? 'gradient-border shadow-premium' : 'bg-white/10'}`}>
+                  <div className={`relative h-full flex flex-col rounded-2xl p-7 ${popular ? 'bg-zinc-950/90' : 'bg-white/[0.03] backdrop-blur-xl'}`}>
+                    {popular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-gradient-to-r from-fuchsia-500 to-indigo-600 text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
+                        <SparklesIcon className="size-3" /> Most popular
+                      </span>
+                    )}
 
-                                <ul className="space-y-1.5 mb-6 text-sm">
-                                    {plan.features.map((feature, i) => (
-                                        <li key={i} className="flex items-center">
-                                            <svg className="h-5 w-5 text-indigo-300 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            <span className="text-gray-400">{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <button onClick={() => handlePurchase(plan.id)} className="w-full py-2 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 active:scale-95 text-sm rounded-md smooth-transition hover:shadow-lg hover:shadow-indigo-500/50">
-                                    Buy Now
-                                </button>
-                            </div>
-                        ))}
+                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                    <div className="mt-3 flex items-baseline gap-1">
+                      <span className="text-4xl font-bold">{plan.price}</span>
+                      <span className="text-gray-400 text-sm">/ {plan.credits} credits</span>
                     </div>
-                </div>
-                <p className='mx-auto text-center text-sm max-w-md mt-10 text-white/
-                100 font-light'>Project <span className='text-white'>Creation / Revision</span> consume
-                <span className='text-white'> 5 credits </span>.You can purchase more credits to create 
-                more projects.</p>
-       </div>
-       <Footer />
-    </>
-  )
-}
+                    <p className="text-gray-400 text-sm mt-3">{plan.description}</p>
 
-export default Pricing
+                    <div className="divider-gradient w-full my-6 opacity-50" />
+
+                    <ul className="space-y-3 mb-8 text-sm flex-1">
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <span className={`flex items-center justify-center size-5 rounded-full shrink-0 ${popular ? 'bg-indigo-500/30' : 'bg-white/10'}`}>
+                            <CheckIcon className="size-3 text-indigo-300" />
+                          </span>
+                          <span className="text-gray-300">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      onClick={() => handlePurchase(plan.id)}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium active:scale-95 smooth-transition ${
+                        popular
+                          ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-500/40 animate-gradient'
+                          : 'glass hover:bg-white/10'
+                      }`}
+                    >
+                      Get {plan.name} <ArrowRightIcon className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mx-auto text-center text-sm max-w-md mt-12 text-gray-400 font-light">
+          Project <span className="text-white">creation / revision</span> consumes
+          <span className="text-white"> 5 credits</span>. Purchase more credits anytime to keep building.
+        </p>
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Pricing;

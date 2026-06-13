@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Project } from "../types";
-import { Loader2Icon, PlusIcon, TrashIcon } from "lucide-react";
+import { Loader2Icon, ExternalLinkIcon, LayoutGridIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-
 import Footer from "../components/Footer";
 import api from "@/configs/axios";
 import { toast } from "sonner";
@@ -14,12 +13,13 @@ const Community = () => {
 
   const fetchProjects = async () => {
     try {
-      const {data} = await api.get('/api/project/published');
+      const { data } = await api.get('/api/project/published');
       setProjects(data.projects);
       setLoading(false);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message)
-      console.error(error)
+      toast.error(error?.response?.data?.message || error.message);
+      console.error(error);
+      setLoading(false);
     }
   };
 
@@ -28,124 +28,115 @@ const Community = () => {
   }, []);
 
   return (
-    <>
-      <div className="px-4 md:px-16 lg:px-24 xl:px-32">
+    <div className="relative text-white overflow-hidden">
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-grid" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/15 blur-[130px] animate-aurora" />
+      </div>
+
+      <div className="px-4 md:px-16 lg:px-24 xl:px-32 min-h-[80vh]">
+        {/* Header */}
+        <div className="pt-16 text-center animate-fade-in-down">
+          <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Community</p>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mt-3">
+            Built with <span className="text-gradient">SiteBuilder</span>
+          </h1>
+          <p className="text-gray-400 max-w-md mx-auto mt-4">
+            Explore websites the community created from a single prompt. Click any to view it live.
+          </p>
+        </div>
+
         {loading ? (
-          <div className="flex items-center justify-center h-[80vh]">
-            <Loader2Icon className="size-7 animate-spin text-indigo-200" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 py-14">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="glass rounded-2xl overflow-hidden animate-pulse">
+                <div className="h-40 bg-white/5" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 w-2/3 rounded bg-white/10" />
+                  <div className="h-3 w-full rounded bg-white/5" />
+                  <div className="h-3 w-1/2 rounded bg-white/5" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : projects.length > 0 ? (
-          <div className="py-10 min-h-[80vh] animate-fade-in-up">
-            <div className="flex items-center justify-between mb-12 animate-fade-in-down">
-              <h1 className="text-2xl font-medium text-white">
-                Published projects
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap gap-3.5">
-              {projects.map((project, idx) => (
-                <Link
-                  key={project.id}
-                  to={`/view/${project.id}`}
-                  target="_blank"
-                  className={`w-72 max-sm:mx-auto cursor-pointer bg-gray-900/60 border border-gray-700 rounded-lg overflow-hidden group hover:border-indigo-800/80 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/20 smooth-transition animate-scale-in`}
-                  style={{animationDelay: `${Math.min(idx * 0.1, 1)}s`}}
-                >
-                  <div
-                    className="relative w-full h-40 bg-gray-900
-                  overflow-hidden border-b border-gray-800"
-                  >
-                    {project.current_code ? (
-                      <iframe
-                        srcDoc={project.current_code}
-                        className="absolute top-0 left-0 w-[1200px] h-[800px]
-                       origin-top-left pointer-events-none"
-                        sandbox="allow-scripts allow-same-origin"
-                        style={{ transform: "scale(0.25)" }}
-                      />
-                    ) : (
-                      <div
-                        className="flex items-center justify-center h-full 
-                      text-gray-500"
-                      >
-                        <p>No Preview</p>
-                      </div>
-                    )}
-                  </div>
-                  {/*contents */}
-                  <div
-                    className="p-4 text-white bg-gradient-to-b
-                 from-transparent group-hover:from-indigo-950/50
-                 to-transparent smooth-transition"
-                  >
-                    <div className="flex items-start justify-between">
-                      <h2
-                        className="text-lg font-medium
-                  line-clamp-2"
-                      >
-                        {project.name}
-                      </h2>
-                      <span
-                        className="ml-2 px-4 py-1 rounded-full bg-[#242a38] text-white/70 border border-[#3c4250] text-xs font-semibold shadow-lg transition-all"
-                        style={{ letterSpacing: "0.02em" }}
-                      >
-                        Website
-                      </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 py-14 animate-fade-in-up">
+            {projects.map((project, idx) => (
+              <Link
+                key={project.id}
+                to={`/view/${project.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative glass rounded-2xl overflow-hidden hover:border-indigo-400/50 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-indigo-500/15 smooth-transition animate-scale-in"
+                style={{ animationDelay: `${Math.min(idx * 0.07, 1)}s` }}
+              >
+                {/* Preview */}
+                <div className="relative w-full h-40 bg-zinc-900 overflow-hidden border-b border-white/10">
+                  {project.current_code ? (
+                    <iframe
+                      srcDoc={project.current_code}
+                      className="absolute top-0 left-0 w-[1200px] h-[800px] origin-top-left pointer-events-none"
+                      sandbox="allow-scripts allow-same-origin"
+                      style={{ transform: "scale(0.25)" }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-600">
+                      <p>No Preview</p>
                     </div>
-                    <p
-                      className="text-gray-400 mt-1 text-sm
-                  line-clamp-2"
-                    >
-                      {project.initial_prompt}
-                    </p>
-
-                    <div
-                      className="flex justify-between items-center
-                  mt-6"
-                    >
-                      <span className="text-xs text-gray-500">
-                        {new Date(project.createdAt).toLocaleDateString()}{" "}
-                      </span>
-                      <div className="flex  gap-3 text-white text-sm">
-                        <button
-                          className="px-3 py-1.5 bg-white/10
-                      hover:bg-white/15 rounded-md
-                      smooth-transition flex 
-                      items-center gap-2"
-                        >
-                          <span
-                            className="bg-gray-200 size-4.5
-                        rounded-full text-black font-semibold
-                        flex items-center justify-center"
-                          >
-                            {project.user?.name?.slice(0, 1)}
-                          </span>
-                          {project.user?.name}
-                        </button>
-                      </div>
-                    </div>
+                  )}
+                  {/* hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 smooth-transition flex items-end justify-center pb-3">
+                    <span className="flex items-center gap-1.5 text-xs font-medium glass px-3 py-1.5 rounded-full translate-y-2 group-hover:translate-y-0 smooth-transition">
+                      <ExternalLinkIcon className="size-3.5" /> View live
+                    </span>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-base font-semibold line-clamp-1">{project.name}</h2>
+                    <span className="shrink-0 px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 text-[11px] font-medium">
+                      Website
+                    </span>
+                  </div>
+                  <p className="text-gray-400 mt-1.5 text-sm line-clamp-2 min-h-[2.5rem]">
+                    {project.initial_prompt}
+                  </p>
+                  <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-gradient-to-br from-indigo-400 to-fuchsia-500 size-6 rounded-full text-white text-xs font-semibold flex items-center justify-center">
+                        {project.user?.name?.slice(0, 1)?.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-300">{project.user?.name}</span>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[80vh] animate-fade-in-up">
-            <h1 className="text-3xl font-semibold text-gray-300">
-              You have no project yet!
-            </h1>
+          <div className="flex flex-col items-center justify-center text-center py-28 animate-fade-in-up">
+            <div className="flex items-center justify-center size-16 rounded-2xl glass mb-6">
+              <LayoutGridIcon className="size-7 text-indigo-300" />
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-200">No published projects yet</h2>
+            <p className="text-gray-500 mt-2 max-w-sm">Be the first to share something — build a site and publish it to the community.</p>
             <button
               onClick={() => navigate("/")}
-              className="text-white px-5 py-2 mt-5 rounded-md 
-          bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 active:scale-95 smooth-transition hover:shadow-lg hover:shadow-indigo-500/50"
+              className="mt-6 flex items-center gap-2 text-white px-6 py-2.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 smooth-transition animate-gradient"
             >
-              Create New
+              Create your first site
             </button>
           </div>
         )}
       </div>
       <Footer />
-    </>
+    </div>
   );
 };
 
