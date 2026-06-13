@@ -7,7 +7,7 @@ CREATE TABLE "user" (
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "totalCreation" INTEGER NOT NULL DEFAULT 0,
-    "credits" INTEGER NOT NULL DEFAULT 20,
+    "credits" INTEGER NOT NULL DEFAULT 50,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,

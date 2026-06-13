@@ -1,13 +1,13 @@
 import {Request, Response} from 'express'
 import prisma from '../lib/prisma.js';
-import openai from '../configs/openai.js';
+import { createChatCompletion, FREE_MODEL } from '../configs/openai.js';
 
 // controller function to make revision
 export const makeRevision = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     try {
-        const {projectId} = req.params;
+        const {projectId} = req.params as { projectId: string };
         const {message} = req.body;
 
         const user = await prisma.user.findUnique({
@@ -52,8 +52,8 @@ export const makeRevision = async (req: Request, res: Response) => {
         ])
 
         //enhance user prompt
-        const promptEnhanceResponse = await openai.chat.completions.create({
-            model: 'qwen/qwen3-coder:free',
+        const promptEnhanceResponse = await createChatCompletion({
+            model: FREE_MODEL,
             messages: [{
                 role: 'system',
                 content: `You are a prompt enhancement specialist. The user wants to make changes to their website. Enhance their request to be more specific and actionable for a web developer.
@@ -89,8 +89,8 @@ Return ONLY the enhanced request, nothing else. Keep it concise (1-2 sentences).
         })
 
         //generate website code
-        const codeGenerationResponse = await openai.chat.completions.create({
-            model: 'qwen/qwen3-coder:free',
+        const codeGenerationResponse = await createChatCompletion({
+            model: FREE_MODEL,
             messages: [
                 {
                     role: 'system',
@@ -182,7 +182,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
         if(!userId){
             return res.status(401).json({ message: 'Unauthorized'});
         }
-        const { projectId, versionId }= req.params;
+        const { projectId, versionId } = req.params as { projectId: string; versionId: string };
 
         const project = await prisma.websiteProject.findUnique({
             where: {id: projectId, userId},
@@ -233,7 +233,7 @@ export const deleteProject = async (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
-        const { projectId }= req.params;
+        const { projectId } = req.params as { projectId: string };
         
         if (!projectId) {
             return res.status(400).json({ message: 'Project ID is required' });
@@ -266,7 +266,7 @@ export const getProjectPreview = async (req: Request, res: Response) => {
 
     try {
         const userId = req.userId;
-        const { projectId }= req.params;
+        const { projectId } = req.params as { projectId: string };
         
         if(!userId){
             return res.status(401).json({ message: 'Unauthorized' });
@@ -315,7 +315,7 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
 export const getProjectById = async (req: Request, res: Response) => {
     
     try {
-        const {projectId} = req.params;
+        const {projectId} = req.params as { projectId: string };
         
 
         const project = await prisma.websiteProject.findFirst({
@@ -342,7 +342,7 @@ export const saveProjectCode= async (req: Request, res: Response) => {
     
     try {
         const userId = req.userId;
-        const {projectId} = req.params;
+        const {projectId} = req.params as { projectId: string };
         const {code} = req.body;
 
         if(!userId){

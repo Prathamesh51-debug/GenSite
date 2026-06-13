@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import prisma from '../lib/prisma.js';
-import openai from '../configs/openai.js';
+import { createChatCompletion, FREE_MODEL } from '../configs/openai.js';
 import Stripe from 'stripe';
 
 // Helper to safely get a string from req.params
@@ -25,8 +25,8 @@ export const getUserCredits = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Default to 20 credits (schema default) if credits is null/undefined
-        const credits = user.credits ?? 20;
+        // Default to 50 credits (schema default) if credits is null/undefined
+        const credits = user.credits ?? 50;
 
         res.json({ credits })
 
@@ -96,8 +96,8 @@ export const createUserProject = async (req: Request, res: Response) => {
         res.json({ projectId: project.id })
 
         // enhance user prompt
-        const promptEnhanceResponse = await openai.chat.completions.create({
-            model: 'z-ai/glm-4.5-air:free',
+        const promptEnhanceResponse = await createChatCompletion({
+            model: FREE_MODEL,
             messages: [
                 {
                     role: 'system',
@@ -140,8 +140,8 @@ Return ONLY the enhanced prompt, nothing else. Make it detailed but concise (2-3
         })
 
         //generate website code
-        const codeGenerationResponse = await openai.chat.completions.create({
-            model: 'z-ai/glm-4.5-air:free',
+        const codeGenerationResponse = await createChatCompletion({
+            model: FREE_MODEL,
             messages: [
                 {
                     role: 'system',
