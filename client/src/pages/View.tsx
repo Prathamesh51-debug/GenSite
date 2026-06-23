@@ -23,6 +23,7 @@ const View = () => {
       } catch (error: any) {
         toast.error(error?.response?.data?.message || error.message)
        console.error(error)
+       setLoading(false)
       }
     }
     
@@ -41,8 +42,14 @@ const View = () => {
 
   return (
     <div className="h-screen animate-fade-in">
-        {code && <ProjectPreview project={{current_code: code} as Project }
-        isGenerating={false} showEditorPanel={false}/>}
+        {code ? (
+          <ProjectPreview project={{current_code: code} as Project }
+          isGenerating={false} showEditorPanel={false}/>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            This site is unavailable or could not be loaded.
+          </div>
+        )}
     </div>
   )
 }
