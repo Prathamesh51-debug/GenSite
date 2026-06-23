@@ -7,7 +7,7 @@
   "postinstall": "prisma generate",
   "build": "prisma generate && tsc",
   "start": "node dist/server.js",
-  "dev": "nodemon server.ts"
+  "dev": "tsx watch server.ts"
 },
   "keywords": [],
   "author": "",
