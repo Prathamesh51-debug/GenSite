@@ -3,12 +3,15 @@ import type { Project } from '../types';
 import { iframeScript } from '../assets/assets';
 import EditorPanel from './EditorPanel';
 import LoaderSteps from './LoaderSteps';
+import api from '@/configs/axios';
+import { toast } from 'sonner';
 
 interface ProjectPreviewProps {
     project: Project;
     isGenerating: boolean;
     device?: 'phone' | 'tablet' | 'desktop';
     showEditorPanel?: boolean;
+    streamingHtml?: string;
 }
 
 export interface ProjectPreviewRef {
@@ -16,9 +19,10 @@ export interface ProjectPreviewRef {
 }
 
 const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
-    ({ project, isGenerating, device = 'desktop', showEditorPanel = true }, ref) => {
+    ({ project, isGenerating, device = 'desktop', showEditorPanel = true, streamingHtml = '' }, ref) => {
         const iframeRef = useRef<HTMLIFrameElement>(null);
         const [selectedElement, setSelectedElement] = useState<any>(null);
+        const [aiLoading, setAiLoading] = useState(false);
 
         const resolutions: Record<string, string> = {
             phone: 'w-[412px]',
@@ -26,39 +30,26 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
             desktop: 'w-full'
         };
 
+        const readCleanCode = (): string | undefined => {
+            const doc = iframeRef.current?.contentDocument;
+            if (!doc?.documentElement) return undefined;
+            const clone = doc.documentElement.cloneNode(true) as HTMLElement;
+            clone.querySelectorAll('.ai-selected-element,[data-ai-selected]').forEach((el) => {
+                el.classList.remove('ai-selected-element');
+                el.removeAttribute('data-ai-selected');
+                (el as HTMLElement).style.outline = '';
+            });
+            clone.querySelector('#ai-preview-style')?.remove();
+            clone.querySelector('#ai-preview-script')?.remove();
+            return '<!DOCTYPE html>\n' + clone.outerHTML;
+        };
+
         useImperativeHandle(ref, () => ({
-            getCode: () => {
-                const doc = iframeRef.current?.contentDocument;
-                if (!doc) return undefined;
-
-                // Remove selection highlights before getting HTML
-                doc
-                    .querySelectorAll('.ai-selected-element,[data-ai-selected]')
-                    .forEach((el) => {
-                        el.classList.remove('ai-selected-element');
-                        el.removeAttribute('data-ai-selected');
-                        (el as HTMLElement).style.outline = '';
-                    });
-
-                // Remove injected preview style or script if present
-                const previewStyle = doc.getElementById('ai-preview-style');
-                if (previewStyle) previewStyle.parentNode?.removeChild(previewStyle);
-
-                const previewScript = doc.getElementById('ai-preview-script');
-                if (previewScript) previewScript.parentNode?.removeChild(previewScript);
-
-                // Check for document root existence
-                if (doc.documentElement) {
-                    return doc.documentElement.outerHTML;
-                }
-                return undefined;
-            },
+            getCode: readCleanCode,
         }));
 
         useEffect(() => {
             const handleMessage = (event: MessageEvent) => {
-                // Make sure message comes from the expected iframe if possible
-                // (skip origin check for dev for simplicity)
                 if (!event.data || typeof event.data !== 'object') return;
                 if ('type' in event.data) {
                     if (event.data.type === 'ELEMENT_SELECTED') {
@@ -84,12 +75,41 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
             }
         };
 
-        // Defensive: If html is not a string or empty don't proceed
+        const handleAiEdit = async (prompt: string) => {
+            if (!selectedElement?.outerHTML || !project.id) return;
+            setAiLoading(true);
+            try {
+                const { data } = await api.post(`/api/project/edit-element/${project.id}`, {
+                    html: selectedElement.outerHTML,
+                    message: prompt,
+                });
+                iframeRef.current?.contentWindow?.postMessage(
+                    { type: 'REPLACE_ELEMENT', html: data.html },
+                    '*'
+                );
+                setSelectedElement(null);
+                setTimeout(async () => {
+                    const code = readCleanCode();
+                    if (code) {
+                        try {
+                            await api.put(`/api/project/save/${project.id}`, { code });
+                        } catch {
+                            
+                        }
+                    }
+                }, 250);
+                toast.success('Section updated');
+            } catch (error: any) {
+                toast.error(error?.response?.data?.message || error.message);
+            } finally {
+                setAiLoading(false);
+            }
+        };
+
         const injectPreview = (html: string) => {
             if (!html || typeof html !== 'string') return "";
             if (!showEditorPanel) return html;
 
-            // Only inject once, avoid duplicate script
             if (html.includes('<script') && html.includes('ai-preview-script')) {
                 return html;
             }
@@ -111,16 +131,16 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                             ref={iframeRef}
                             srcDoc={injectPreview(project.current_code)}
                             className={`h-full max-sm:w-full ${resolutions[device]} mx-auto transition-all`}
-                            // Add sandbox for safety
                             sandbox="allow-scripts allow-same-origin"
-                            // Make sure iframe is not cached
-                            key={device + (project.id || '')}
+                            key={device + (project.id || '') + (project.current_version_index || '') + (project.current_code?.length || 0)}
                             title="project-preview"
                         />
                         {showEditorPanel && selectedElement && (
                             <EditorPanel
                                 selectedElement={selectedElement}
                                 onUpdate={handleUpdate}
+                                onAiEdit={handleAiEdit}
+                                aiLoading={aiLoading}
                                 onClose={() => {
                                     setSelectedElement(null);
                                     if (iframeRef.current?.contentWindow) {
@@ -133,9 +153,26 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                             />
                         )}
                     </>
+                ) : streamingHtml ? (
+                    <div className="relative h-full">
+                        <iframe
+                            srcDoc={streamingHtml}
+                            className="h-full w-full"
+                            sandbox="allow-scripts allow-same-origin"
+                            title="generating-preview"
+                        />
+                        <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur px-3 py-1.5 text-xs text-white border border-white/10">
+                            <span className="size-2 rounded-full bg-indigo-400 animate-pulse" /> Building your site…
+                        </div>
+                    </div>
                 ) : isGenerating ? (
                     <LoaderSteps />
-                ) : null}
+                ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-6 text-gray-400">
+                        <p className="text-sm">Your preview will appear here once generation finishes.</p>
+                        <p className="text-xs text-gray-500 max-w-sm">If nothing generated, check the chat on the left — your credits are refunded on failure. Send a new request to try again.</p>
+                    </div>
+                )}
             </div>
         );
     }
