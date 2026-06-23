@@ -7,7 +7,14 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { motion, useMotionTemplate, useMotionValue, type Variants } from 'framer-motion';
+import gsap from 'gsap';
 import Footer from '../components/Footer';
+import SplineScene from '../components/SplineScene';
+import { SparklesCore } from '../components/ui/sparkles';
+import Aurora from '../components/reactbits/Aurora';
+
+const HERO_SPLINE = 'https://prod.spline.design/NEmNpfFUwA5GVzzA/scene.splinecode';
 
 const examplePrompts = [
   'A sleek portfolio for a photographer',
@@ -38,24 +45,64 @@ const features = [
   { icon: ShieldCheckIcon, title: 'Secure by default', desc: 'Authentication, billing and your projects, safely handled end to end.' },
 ];
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 34 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.75, ease: EASE } },
+};
+
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+
+const Reveal = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`gsap-zoom ${className}`}>{children}</div>
+);
+
 const Home = () => {
   const { data: session } = authClient.useSession();
   const navigate = useNavigate();
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
 
-  // Scroll-reveal for sections
+  const mx = useMotionValue(-400);
+  const my = useMotionValue(-400);
+  const spotlight = useMotionTemplate`radial-gradient(34rem 26rem at ${mx}px ${my}px, rgba(129,140,248,0.18), transparent 72%)`;
+  const handleHeroMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    mx.set(e.clientX - r.left);
+    my.set(e.clientY - r.top);
+  };
+
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const els = rootRef.current?.querySelectorAll('.reveal');
-    if (!els?.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add('is-visible')),
-      { threshold: 0.15 }
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('.gsap-zoom').forEach((el) => {
+        gsap.fromTo(
+          el,
+          { scale: 0.86, opacity: 0, y: 60 },
+          {
+            scale: 1, opacity: 1, y: 0, ease: 'none',
+            scrollTrigger: { trigger: el, start: 'top 88%', end: 'top 48%', scrub: 0.5 },
+          }
+        );
+      });
+      gsap.utils.toArray<HTMLElement>('.gsap-stagger').forEach((grid) => {
+        gsap.fromTo(
+          grid.children,
+          { scale: 0.9, opacity: 0, y: 50 },
+          {
+            scale: 1, opacity: 1, y: 0, ease: 'none', stagger: 0.08,
+            scrollTrigger: { trigger: grid, start: 'top 90%', end: 'top 52%', scrub: 0.5 },
+          }
+        );
+      });
+    }, rootRef);
+    return () => ctx.revert();
   }, []);
 
   const onSubmitHandler = async (e: React.FormEvent) => {
@@ -77,159 +124,184 @@ const Home = () => {
   };
 
   return (
-    <div ref={rootRef} className="text-white text-sm overflow-hidden">
-      <section className="relative flex flex-col items-center px-4">
+    <div ref={rootRef} className="text-white text-sm">
+      <section className="relative flex flex-col items-center px-4 md:px-16 lg:px-24 xl:px-32" onMouseMove={handleHeroMove}>
 
-        {/* ---------- Ambient background ---------- */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-grid" />
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[42rem] h-[42rem] rounded-full bg-indigo-600/25 blur-[120px] animate-aurora" />
-          <div className="absolute top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-fuchsia-600/20 blur-[120px] animate-aurora" style={{ animationDelay: '4s' }} />
-          <div className="absolute top-10 -right-24 w-[30rem] h-[30rem] rounded-full bg-violet-500/20 blur-[120px] animate-aurora" style={{ animationDelay: '8s' }} />
-        </div>
-
-        {/* ---------- Badge ---------- */}
-        <button
-          onClick={() => navigate('/pricing')}
-          className="group flex items-center gap-2 glass rounded-full p-1 pr-3 text-sm mt-20 animate-fade-in-down hover:border-indigo-400/60 hover:bg-white/10 smooth-transition"
-        >
-          <span className="flex items-center gap-1 bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-xs px-3 py-1 rounded-full font-medium">
-            <SparklesIcon className="size-3" /> NEW
-          </span>
-          <p className="flex items-center gap-2 text-gray-200">
-            <span>Start your 30-day free trial</span>
-            <ArrowRightIcon className="size-3.5 group-hover:translate-x-1 smooth-transition" />
-          </p>
-        </button>
-
-        {/* ---------- Headline ---------- */}
-        <h1 className="text-center text-[40px] leading-[48px] md:text-[68px] md:leading-[76px] mt-6 font-semibold tracking-tight max-w-4xl animate-fade-in-up animate-delay-200">
-          Turn thoughts into <span className="text-gradient">stunning websites</span>, instantly.
-        </h1>
-
-        <p className="text-center text-base md:text-lg max-w-xl mt-5 animate-fade-in-up animate-delay-300 text-gray-400">
-          Describe your idea and watch our AI design, build and publish a beautiful, responsive website — no code required.
-        </p>
-
-        {/* ---------- Prompt box ---------- */}
-        <form
-          onSubmit={onSubmitHandler}
-          className="glass glow-ring max-w-2xl w-full rounded-2xl p-4 mt-10 focus-within:ring-2 focus-within:ring-indigo-500/70 transition-all animate-fade-in-up animate-delay-400"
-        >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="bg-transparent outline-none text-gray-100 resize-none w-full placeholder:text-gray-500 smooth-transition"
-            rows={4}
-            placeholder="Describe the website you want — e.g. a sleek landing page for a coffee brand with a menu and contact section"
-            required
-          />
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500">
-              <SparklesIcon className="size-3.5 text-indigo-400" /> Powered by AI
-            </span>
-            <button
-              className="ml-auto flex items-center gap-2 bg-gradient-to-r from-fuchsia-500 to-indigo-600 rounded-lg px-5 py-2.5 font-medium hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 smooth-transition animate-gradient disabled:opacity-70"
-              disabled={loading}
-            >
-              {!loading ? (
-                <>Create with AI <ArrowRightIcon className="size-4" /></>
-              ) : (
-                <>Creating <Loader2Icon className="animate-spin size-4 text-white" /></>
-              )}
-            </button>
+        {}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          {}
+          <div className="absolute inset-x-0 top-0 h-[120%] opacity-60">
+            <Aurora colorStops={['#4f46e5', '#7c3aed', '#a855f7']} amplitude={1.1} blend={0.55} speed={0.8} />
           </div>
-        </form>
-
-        {/* ---------- Example chips ---------- */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-6 max-w-2xl animate-fade-in-up animate-delay-500">
-          <span className="text-xs text-gray-500">Try:</span>
-          {examplePrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => setInput(prompt)}
-              className="text-xs text-gray-300 glass rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white hover:border-indigo-400/50 smooth-transition"
-            >
-              {prompt}
-            </button>
-          ))}
+          <div className="absolute inset-0 bg-grid opacity-50" />
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[44rem] h-[44rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
+          <div className="absolute top-24 -left-24 w-[30rem] h-[30rem] rounded-full bg-violet-600/15 blur-[130px] animate-aurora" style={{ animationDelay: '5s' }} />
+          <div className="absolute top-10 -right-24 w-[30rem] h-[30rem] rounded-full bg-fuchsia-600/12 blur-[130px] animate-aurora" style={{ animationDelay: '9s' }} />
+          <motion.div className="absolute inset-0" style={{ background: spotlight }} />
         </div>
 
-        {/* ---------- Product mockup ---------- */}
-        <div className="reveal relative mt-24 w-full max-w-5xl">
-          <div className="absolute -inset-x-10 -top-10 bottom-0 bg-indigo-600/20 blur-[100px] -z-10" />
-          <div className="glass shadow-premium rounded-2xl overflow-hidden border border-white/10">
-            {/* browser bar */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-white/[0.03]">
-              <span className="size-3 rounded-full bg-red-400/80" />
-              <span className="size-3 rounded-full bg-yellow-400/80" />
-              <span className="size-3 rounded-full bg-green-400/80" />
-              <div className="ml-3 flex-1 max-w-sm flex items-center gap-2 text-xs text-gray-400 bg-black/30 rounded-md px-3 py-1.5 border border-white/5">
-                <GlobeIcon className="size-3.5" /> yoursite.sitebuilder.app
+        {}
+        <div className="relative grid lg:grid-cols-[1.1fr_1fr] lg:items-center gap-6 lg:gap-10 w-full max-w-6xl mx-auto mt-12 md:mt-20">
+          <motion.div className="flex flex-col items-center text-center w-full lg:max-w-xl z-10 mx-auto" variants={container} initial="hidden" animate="show">
+            {}
+            <motion.button
+              variants={fadeUp}
+              onClick={() => navigate('/pricing')}
+              whileHover={{ y: -2 }}
+              className="group flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-full py-1 pl-1 pr-4 text-sm hover:border-indigo-500/50 hover:bg-white/10 transition-all duration-300 shadow-[0_8px_16px_rgba(0,0,0,0.3)]"
+            >
+              <span className="flex items-center gap-1 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]">
+                NEW
+              </span>
+              <p className="flex items-center gap-2 text-gray-200 text-xs font-medium tracking-wide">
+                <span>Start your 30-day free trial</span>
+                <ArrowRightIcon className="size-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </p>
+            </motion.button>
+
+            {}
+            <motion.h1
+              variants={fadeUp}
+              className="font-display text-[44px] leading-[1.1] md:text-[64px] md:leading-[1.1] mt-7 font-bold text-white tracking-tight"
+            >
+              Turn thoughts into <br className="hidden md:block" />
+              stunning <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 animate-pulse">websites</span>,<br className="hidden md:block" /> instantly.
+            </motion.h1>
+
+            <motion.p
+              variants={fadeUp}
+              className="text-base md:text-[17px] max-w-md lg:max-w-lg mt-6 text-gray-400 leading-relaxed font-medium"
+            >
+              Describe your idea and watch our AI design, build and publish a beautiful, responsive website — no code required.
+            </motion.p>
+            {}
+            <motion.form
+              variants={fadeUp}
+              onSubmit={onSubmitHandler}
+              whileHover={{ scale: 1.005 }}
+              className="relative w-full bg-[#16161c]/40 backdrop-blur-2xl border border-white/10 rounded-[24px] p-5 mt-10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all duration-300 group"
+            >
+              <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="bg-transparent outline-none text-gray-100 resize-none w-full placeholder:text-gray-500 text-[15px] relative z-10 leading-relaxed"
+                rows={3}
+                placeholder="Describe the website you want — e.g. a sleek landing page for a coffee brand with a menu and contact section"
+                required
+              />
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5 mt-2 relative z-10">
+                <span className="hidden sm:flex items-center gap-2 text-xs text-gray-400 font-semibold tracking-wider uppercase">
+                  <SparklesIcon className="size-4 text-indigo-400" /> Powered by AI
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:from-[#6d28d9] hover:to-[#7c3aed] disabled:opacity-70 transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] border border-white/10"
+                  disabled={loading}
+                >
+                  {!loading ? (
+                    <>Create with AI <ArrowRightIcon className="size-4" /></>
+                  ) : (
+                    <>Creating <Loader2Icon className="animate-spin size-4 text-white" /></>
+                  )}
+                </motion.button>
               </div>
+            </motion.form>
+
+            {}
+            <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 mt-8 w-full max-w-[500px]">
+              <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Try:</span>
+              {examplePrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setInput(prompt)}
+                  className="text-xs text-gray-300 bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:border-indigo-400/60 hover:bg-white/10 hover:text-white hover:shadow-[0_0_15px_rgba(124,58,237,0.2)] transition-all duration-300"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {}
+          {}
+          <div className="relative mt-8 mx-auto w-full max-w-[420px] h-[320px] lg:mt-0 lg:max-w-none lg:h-auto lg:aspect-[4/3] lg:justify-self-end">
+            {}
+            <svg width="0" height="0" className="absolute pointer-events-none">
+              <defs>
+                <filter id="galaxy-blur" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="0.08" />
+                </filter>
+                <mask id="galaxy-mask" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox">
+                  {}
+                  <path 
+                    d="M 0.05 0.85 C 0.4 1.1, 0.85 0.8, 0.95 0.05" 
+                    stroke="white" 
+                    strokeWidth="0.25" 
+                    fill="none" 
+                    strokeLinecap="round"
+                    filter="url(#galaxy-blur)"
+                  />
+                  {}
+                  <circle cx="0.7" cy="0.5" r="0.25" fill="white" filter="url(#galaxy-blur)" />
+                  {}
+                  <circle cx="0.2" cy="0.75" r="0.15" fill="white" filter="url(#galaxy-blur)" />
+                  {}
+                  <circle cx="0.85" cy="0.2" r="0.2" fill="white" filter="url(#galaxy-blur)" />
+                </mask>
+              </defs>
+            </svg>
+
+            {}
+            <div 
+              className="absolute -inset-[120px] z-0" 
+              style={{ 
+                maskImage: 'url(#galaxy-mask)', 
+                WebkitMaskImage: 'url(#galaxy-mask)' 
+              }}
+            >
+              <SparklesCore
+                background="transparent"
+                minSize={0.8}
+                maxSize={4}
+                particleDensity={500}
+                className="w-full h-full"
+                particleColor={["#ffffff", "#e2cbff", "#c084fc", "#fcd34d"]}
+              />
             </div>
-            {/* faux generated site */}
-            <div className="relative p-8 md:p-12 bg-gradient-to-b from-zinc-900 to-black">
-              <div className="flex items-center justify-between mb-10">
-                <div className="h-3 w-24 rounded bg-white/20" />
-                <div className="hidden sm:flex gap-4">
-                  <div className="h-2.5 w-12 rounded bg-white/10" />
-                  <div className="h-2.5 w-12 rounded bg-white/10" />
-                  <div className="h-2.5 w-12 rounded bg-white/10" />
-                  <div className="h-2.5 w-16 rounded bg-indigo-400/50" />
-                </div>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <div className="h-5 w-2/3 rounded-md bg-gradient-to-r from-white/40 to-white/10 mb-3" />
-                <div className="h-5 w-1/2 rounded-md bg-gradient-to-r from-fuchsia-400/40 to-indigo-400/30 mb-6" />
-                <div className="h-2.5 w-3/5 rounded bg-white/10 mb-2" />
-                <div className="h-2.5 w-2/5 rounded bg-white/10 mb-7" />
-                <div className="flex gap-3 mb-12">
-                  <div className="h-9 w-32 rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600" />
-                  <div className="h-9 w-28 rounded-lg border border-white/20" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 w-full">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                      <div className="size-8 rounded-lg bg-indigo-400/30 mb-3" />
-                      <div className="h-2 w-3/4 rounded bg-white/15 mb-2" />
-                      <div className="h-2 w-full rounded bg-white/10" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <div className="absolute -inset-6 bg-[#7c3aed]/10 blur-[120px] -z-10" />
+            <SplineScene scene={HERO_SPLINE} className="absolute inset-0 h-full w-full z-10" />
           </div>
         </div>
 
-        {/* ---------- Stats band ---------- */}
-        <div className="reveal grid grid-cols-2 md:grid-cols-4 gap-px mt-24 w-full max-w-5xl glass rounded-2xl overflow-hidden">
+        {}
+        <Reveal className="grid grid-cols-2 md:grid-cols-4 mt-24 w-full max-w-5xl panel shadow-elevated rounded-2xl overflow-hidden divide-x divide-y md:divide-y-0 divide-zinc-800">
           {stats.map((s) => (
-            <div key={s.label} className="flex flex-col items-center justify-center text-center py-8 px-4 bg-white/[0.02]">
-              <span className="text-3xl md:text-4xl font-semibold text-gradient">{s.value}</span>
-              <span className="text-xs md:text-sm text-gray-400 mt-2">{s.label}</span>
+            <div key={s.label} className="flex flex-col items-center justify-center text-center py-9 px-4">
+              <span className="font-display text-3xl md:text-5xl font-bold bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent">{s.value}</span>
+              <span className="text-xs md:text-sm text-gray-500 mt-2">{s.label}</span>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
-      {/* ---------- How it works ---------- */}
+      {}
       <section className="relative px-4 mt-32 max-w-5xl mx-auto">
-        <div className="reveal text-center">
-          <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">How it works</p>
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mt-3">From idea to live site in three steps</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14">
-          {steps.map(({ no, icon: Icon, title, desc }, i) => (
+        <Reveal>
+          <p className="text-indigo-400 text-xs font-semibold tracking-[0.2em] uppercase">How it works</p>
+          <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold mt-3 max-w-2xl">From idea to live site in three steps</h2>
+        </Reveal>
+        <div className="gsap-stagger grid grid-cols-1 md:grid-cols-3 gap-4 mt-14">
+          {steps.map(({ no, icon: Icon, title, desc }) => (
             <div
               key={no}
-              className="reveal relative glass rounded-2xl p-7 hover:bg-white/[0.06] hover:-translate-y-1 smooth-transition"
-              style={{ transitionDelay: `${i * 80}ms` }}
+              className="panel panel-hover relative rounded-2xl p-7 hover:-translate-y-1.5 transition-transform"
             >
-              <span className="absolute top-6 right-7 text-5xl font-bold text-white/5">{no}</span>
-              <div className="flex items-center justify-center size-12 rounded-xl bg-gradient-to-br from-indigo-500/30 to-fuchsia-500/20 border border-white/10 mb-5">
-                <Icon className="size-6 text-indigo-300" />
+              <span className="font-display absolute top-5 right-6 text-6xl font-bold text-white/[0.05]">{no}</span>
+              <div className="flex items-center justify-center size-11 rounded-xl border border-zinc-800 bg-zinc-900 mb-5">
+                <Icon className="size-5 text-indigo-300" />
               </div>
               <h3 className="text-lg font-semibold">{title}</h3>
               <p className="text-sm text-gray-400 mt-2 leading-relaxed">{desc}</p>
@@ -238,50 +310,57 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ---------- Features ---------- */}
+      {}
       <section className="relative px-4 mt-32 max-w-6xl mx-auto">
-        <div className="reveal text-center">
-          <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Features</p>
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mt-3">Everything you need to ship</h2>
-          <p className="text-gray-400 mt-4 max-w-xl mx-auto">A complete toolkit that turns a single prompt into a polished, publishable website.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-14">
-          {features.map(({ icon: Icon, title, desc }, i) => (
-            <div
-              key={title}
-              className="reveal group glass rounded-2xl p-6 text-left hover:bg-white/[0.07] hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 smooth-transition"
-              style={{ transitionDelay: `${(i % 3) * 80}ms` }}
-            >
-              <div className="flex items-center justify-center size-11 rounded-xl bg-gradient-to-br from-indigo-500/30 to-fuchsia-500/20 border border-white/10 mb-4 group-hover:scale-110 smooth-transition">
-                <Icon className="size-5 text-indigo-300" />
+        <Reveal>
+          <p className="text-indigo-400 text-xs font-semibold tracking-[0.2em] uppercase">Features</p>
+          <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold mt-3">Everything you need to ship</h2>
+          <p className="text-shimmer mt-4 max-w-xl">A complete toolkit that turns a single prompt into a polished, publishable website.</p>
+        </Reveal>
+        <div className="gsap-stagger grid grid-cols-1 md:grid-cols-3 gap-4 mt-14">
+          {features.map(({ icon: Icon, title, desc }, i) => {
+            const wide = i === 0 || i === 3 || i === 4;
+            const featured = i === 0;
+            return (
+              <div
+                key={title}
+                className={`panel panel-hover group rounded-2xl p-7 hover:-translate-y-1.5 transition-transform ${wide ? 'md:col-span-2' : ''} ${featured ? 'border-indigo-500/40' : ''}`}
+              >
+                <div className={`flex items-center justify-center size-11 rounded-xl border mb-4 transition-transform group-hover:scale-110 ${featured ? 'border-indigo-500/40 bg-indigo-500/10' : 'border-zinc-800 bg-zinc-900'}`}>
+                  <Icon className={`size-5 ${featured ? 'text-violet-300' : 'text-indigo-300'}`} />
+                </div>
+                <h3 className="text-base font-semibold text-white">{title}</h3>
+                <p className="text-sm text-gray-400 mt-1.5 leading-relaxed max-w-md">{desc}</p>
               </div>
-              <h3 className="text-base font-semibold text-white">{title}</h3>
-              <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">{desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      {/* ---------- Final CTA ---------- */}
+      {}
       <section className="relative px-4 mt-32 max-w-5xl mx-auto">
-        <div className="reveal gradient-border rounded-3xl p-px shadow-premium">
-          <div className="relative rounded-3xl bg-zinc-950/80 backdrop-blur-xl px-6 py-16 md:py-20 text-center overflow-hidden">
-            <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] rounded-full bg-indigo-600/25 blur-[110px]" />
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Ready to build your next website?</h2>
-            <p className="text-gray-400 mt-4 max-w-lg mx-auto">Join thousands of creators turning ideas into live websites. Your first project is moments away.</p>
+        <div className="gsap-zoom panel glow-indigo rounded-3xl px-6 py-16 md:py-20 text-center relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[34rem] h-[34rem] rounded-full bg-indigo-600/15 blur-[120px]" />
+          <div className="relative z-10">
+            <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold">Ready to build your next website?</h2>
+            <p className="text-shimmer mt-4 max-w-lg mx-auto">Join thousands of creators turning ideas into live websites. Your first project is moments away.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => (session?.user ? navigate('/projects') : navigate('/auth/signin'))}
-                className="flex items-center gap-2 bg-gradient-to-r from-fuchsia-500 to-indigo-600 rounded-lg px-7 py-3 font-medium hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 smooth-transition animate-gradient"
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl px-7 py-3 font-semibold shadow-[0_10px_40px_-10px_rgba(99,102,241,0.7)]"
               >
                 Start building free <ArrowRightIcon className="size-4" />
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => navigate('/pricing')}
-                className="flex items-center gap-2 glass rounded-lg px-7 py-3 font-medium hover:bg-white/10 smooth-transition"
+                className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-7 py-3 font-medium hover:border-zinc-700 transition-colors"
               >
                 View pricing
-              </button>
+              </motion.button>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-gray-500">
               <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> No credit card required</span>
