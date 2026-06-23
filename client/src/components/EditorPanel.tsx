@@ -14,14 +14,18 @@ interface EditorPanelProps {
             color: string;
             fontSize: string;
         };
+        outerHTML?: string;
     } | null;
     onUpdate: (Updates: any)=> void;
     onClose: ()=> void;
+    onAiEdit: (prompt: string)=> void;
+    aiLoading: boolean;
 }
 
-const EditorPanel = ({selectedElement, onUpdate, onClose}: EditorPanelProps) => {
-  
+const EditorPanel = ({selectedElement, onUpdate, onClose, onAiEdit, aiLoading}: EditorPanelProps) => {
+
   const [values, setValues] = useState(selectedElement)
+  const [aiPrompt, setAiPrompt] = useState('')
 
   useEffect(()=>{
     setValues(selectedElement)
@@ -49,17 +53,40 @@ const EditorPanel = ({selectedElement, onUpdate, onClose}: EditorPanelProps) => 
     border border-gray-200 p-4 z-50 animate-fade-in fade-in '>
         <div className='flex justify-between items-center mb-4'>
             <h3 className='font-semibold text-gray-800'>Edit Element</h3>
-            <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-full'>
+            <button onClick={onClose} aria-label='Close editor' className='p-1 hover:bg-gray-100 rounded-full'>
                 <X className='w-4 h-4 text-gray-500'/>
             </button>
         </div>
+        {}
+        <div className='mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3'>
+            <label className='block text-xs font-semibold text-indigo-700 mb-1.5'>
+                Ask AI to change this section
+            </label>
+            <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder='e.g. make this a dark card with a gradient button and an icon'
+                disabled={aiLoading}
+                className='w-full text-sm p-2 border border-indigo-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none min-h-16 bg-white text-gray-800 disabled:opacity-60'
+            />
+            <button
+                type='button'
+                onClick={() => { if (aiPrompt.trim()) onAiEdit(aiPrompt.trim()); }}
+                disabled={aiLoading || !aiPrompt.trim()}
+                className='mt-2 w-full flex items-center justify-center gap-2 rounded-md bg-indigo-600 text-white text-sm font-medium py-2 hover:bg-indigo-500 disabled:opacity-60 transition-colors'
+            >
+                {aiLoading ? 'Applying…' : 'Apply with AI'}
+            </button>
+            <p className='mt-1.5 text-[11px] text-indigo-600/80'>Edits only this section · 2 credits</p>
+        </div>
+
         <div className='space-y-4 text-black'>
             <div>
                 <label className='block text-xs font-medium text-gray-500 mb-1'>
                     Text Content
                 </label>
                 <textarea value={values.text} onChange={(e)=>handleChange('text',e.target.value)} 
-                    className='w-full text-sm p-2 border border-gray-400 rounded-md focus:ring-2 focus;ring-indigo-500 outline-none min-h-20'/>
+                    className='w-full text-sm p-2 border border-gray-400 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none min-h-20'/>
 
             </div>
             <div>
