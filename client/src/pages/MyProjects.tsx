@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Project } from '../types'
-import { Loader2Icon, PlusIcon, TrashIcon, FolderIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, FolderIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Footer from '../components/Footer'
 import api from '@/configs/axios'
@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 
 const MyProjects = () => {
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending, error } = authClient.useSession()
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
   const navigate = useNavigate()
@@ -39,28 +39,27 @@ const MyProjects = () => {
   }
 
   useEffect(() => {
-    if (session?.user && !isPending) {
-      fetchProjects()
-    } else if (!isPending && !session?.user) {
-      navigate('/')
-      toast('Please login to view your projects')
-    }
-  }, [session?.user]);
+    if (isPending) return;
+    if (session?.user) { fetchProjects(); return; }
+    if (error) return;
+    navigate('/')
+    toast('Please login to view your projects')
+  }, [session?.user, isPending, error]);
 
   return (
     <div className="relative text-white overflow-hidden">
-      {/* Ambient background */}
+      {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/15 blur-[130px] animate-aurora" />
       </div>
 
       <div className="px-4 md:px-16 lg:px-24 xl:px-32 min-h-[80vh]">
-        {/* Header */}
+        {}
         <div className="flex items-end justify-between gap-4 pt-16 pb-2 animate-fade-in-down">
           <div>
             <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Workspace</p>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mt-2">My projects</h1>
+            <h1 className="text-shimmer text-3xl md:text-4xl font-semibold tracking-tight mt-2">My projects</h1>
           </div>
           <button
             onClick={() => navigate('/')}
@@ -92,7 +91,7 @@ const MyProjects = () => {
                 style={{ animationDelay: `${Math.min(idx * 0.07, 1)}s` }}
                 data-testid={`project-card-${project.id}`}
               >
-                {/* Preview */}
+                {}
                 <div className="relative w-full h-40 bg-zinc-900 overflow-hidden border-b border-white/10">
                   {project.current_code ? (
                     <iframe
@@ -107,19 +106,20 @@ const MyProjects = () => {
                       <p>No Preview</p>
                     </div>
                   )}
-                  {/* Delete */}
+                  {}
                   <div onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => deleteProject(project.id)}
-                      className="absolute top-3 right-3 scale-0 group-hover:scale-100 size-8 flex items-center justify-center rounded-lg bg-black/60 backdrop-blur border border-white/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 smooth-transition"
+                      className="absolute top-3 right-3 scale-0 group-hover:scale-100 focus-visible:scale-100 size-8 flex items-center justify-center rounded-lg bg-black/60 backdrop-blur border border-white/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 smooth-transition"
                       title="Delete project"
+                      aria-label={`Delete project ${project.name}`}
                     >
                       <TrashIcon className="size-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Content */}
+                {}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="text-base font-semibold line-clamp-1">{project.name}</h2>
@@ -163,7 +163,7 @@ const MyProjects = () => {
             <div className="flex items-center justify-center size-16 rounded-2xl glass mb-6">
               <FolderIcon className="size-7 text-indigo-300" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-200">You have no projects yet</h2>
+            <h2 className="text-shimmer text-2xl font-semibold">You have no projects yet</h2>
             <p className="text-gray-500 mt-2 max-w-sm">Describe an idea on the home page and your first website will appear here.</p>
             <button
               onClick={() => navigate('/')}
