@@ -22,13 +22,11 @@ import api from '@/configs/axios'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 
-// DEBUG: add a missing togglePublish implementation and fix Button typo bugs.
-// DEBUG: Fix icon misplacement, typo errors, and ensure the code runs without issues.
 
 const Projects = () => {
   const { projectId } = useParams()
   const navigate = useNavigate()
-  const {data: session, isPending} = authClient.useSession()
+  const {data: session, isPending, error} = authClient.useSession()
 
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,6 +38,9 @@ const Projects = () => {
   const [isSaving, setIsSaving] = useState(false)
 
    const previewRef =useRef<ProjectPreviewRef>(null)
+
+   const [streamHtml, setStreamHtml] = useState('')
+   const streamedRef = useRef<string | null>(null)
 
    const fetchProject =async () => {
    try {
@@ -97,41 +98,51 @@ const Projects = () => {
    };
 
    useEffect(()=>{
+    if(isPending) return;
     if(session?.user){
       fetchProject();
-    }else if(!isPending && !session?.user){
-      navigate("/")
-      toast("Please login to view your projects")
+      return;
     }
-   },[session?.user])
+    if(error) return;
+    navigate("/")
+    toast("Please login to view your projects")
+   },[session?.user, isPending, error])
 
   useEffect(() => {
-    if(project && !project.current_code){
-      const intervalId = setInterval(fetchProject, 10000);
-      return ()=> clearInterval(intervalId)
-    }
-  },[project])
-    
-    // Find project and set it after delay
-  //   const foundProject = dummyProjects.find(project => project.id === projectId)
-  //   const timeoutId = setTimeout(() => {
-  //     if(foundProject){
-  //       setProject({...foundProject,conversation: dummyConversations,  versions:
-  //         dummyVersion
-  //       });
-  //       setLoading(false)
-  //       setIsGenerating(foundProject.current_code ? false : true)
-  //     } else {
-  //       setLoading(false)
-  //       setProject(null)
-  //     }
-  //   }, 2000)
+    if (!project?.id || project.current_code) return;
+    if (streamedRef.current === project.id) return;
+    streamedRef.current = project.id;
 
-  //   // Cleanup timeout on unmount or when projectId changes
-  //   return () => {
-  //     clearTimeout(timeoutId)
-  //   }
-  //  }, [projectId])
+    const base = import.meta.env.VITE_BASEURL || 'http://localhost:3000';
+    const es = new EventSource(`${base}/api/project/stream/${project.id}`, { withCredentials: true });
+
+    es.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.type === 'chunk') {
+          setStreamHtml(d.html);
+        } else if (d.type === 'done') {
+          es.close();
+          setStreamHtml('');
+          fetchProject();
+        } else if (d.type === 'error') {
+          es.close();
+          setStreamHtml('');
+          setIsGenerating(false);
+          toast.error(d.message || 'Generation failed');
+          fetchProject();
+        }
+      } catch {  }
+    };
+    es.onerror = () => {
+      es.close();
+      fetchProject();
+    };
+
+    return () => es.close();
+  }, [project?.id, project?.current_code])
+    
+
 
   if (loading) {
     return (
@@ -145,34 +156,50 @@ const Projects = () => {
 
   return project ? (
     <div className='flex flex-col h-screen w-full bg-gray-900 text-white'>
-      {/* buider navbar*/}
+      {}
         <div className='flex max-sm:flex-col sm:items-center gap-4 px-4 py-2
         no-scrollbar'>
           
-          {/* left */}
+          {}
           <div className='flex items-center gap-2 sm:min-w-90 text-nowrap'>
             <img src="/favicon.svg" alt='logo' className='h-6 cursor-pointer' 
             onClick={()=>navigate('/')}/>
             <div className='max-w-64 sm:max-w-xs'>
-              <p className='text-sm text-medium capitalize truncate'>{project.name}</p>
+              <p className='text-sm font-medium capitalize truncate'>{project.name}</p>
               <p className='text-xs text-gray-400 -mt-0.5'>Previewing last saved version</p>
             </div>
             <div className='sm:hidden flex-1 flex justify-end'>
-              {isMenuOpen ? <MessageSquareIcon onClick={()=> setIsMenuOpen(false)} className='size-6 cursor-pointer'/>
-              : <XIcon onClick={()=> setIsMenuOpen(true)} className='size-6 cursor-pointer'/>}
-
+              <button
+                type='button'
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label={isMenuOpen ? 'Show preview' : 'Show chat'}
+                className='p-1 text-gray-300 hover:text-white transition-colors'
+              >
+                {isMenuOpen ? <MessageSquareIcon className='size-6'/> : <XIcon className='size-6'/>}
+              </button>
             </div>
           </div>
-          {/* middle */}
-          <div className='hidden sm:flex gap-2 bg-gray-950 p-1.5 rounded-md'>
-            <SmartphoneIcon onClick={()=> setDevice('phone')} className={`size-6 p-1
-            rounded cursor-pointer ${device ==='phone' ? "bg-gray-700" : ""}`}/>
-            <TabletIcon onClick={()=> setDevice('tablet')} className={`size-6 p-1
-            rounded cursor-pointer ${device ==='tablet' ? "bg-gray-700" : ""}`}/>
-            <LaptopIcon onClick={()=> setDevice('desktop')} className={`size-6 p-1
-            rounded cursor-pointer ${device ==='desktop' ? "bg-gray-700" : ""}`}/>
+          {}
+          <div className='hidden sm:flex gap-2 bg-gray-950 p-1.5 rounded-md' role='group' aria-label='Preview device'>
+            {([
+              { id: 'phone', Icon: SmartphoneIcon, label: 'Phone' },
+              { id: 'tablet', Icon: TabletIcon, label: 'Tablet' },
+              { id: 'desktop', Icon: LaptopIcon, label: 'Desktop' },
+            ] as const).map(({ id, Icon, label }) => (
+              <button
+                key={id}
+                type='button'
+                onClick={() => setDevice(id)}
+                aria-label={`${label} view`}
+                aria-pressed={device === id}
+                title={`${label} view`}
+                className={`rounded p-1 transition-colors ${device === id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+              >
+                <Icon className='size-5' />
+              </button>
+            ))}
           </div>
-          {/* right */}
+          {}
           <div className='flex items-center justify-end gap-3 flex-1 text-xs
           sm:text-sm'>
             <button onClick={saveProject} disabled={isSaving} className='max-sm:hidden bg-gray-800
@@ -208,16 +235,21 @@ const Projects = () => {
           />
           <div className='flex-1 p-2 p1-0'>
             <ProjectPreview ref={previewRef} project={project}
-            isGenerating={isGenerating} device={device} />
+            isGenerating={isGenerating} device={device} streamingHtml={streamHtml} />
           </div>
         </div>
     </div>
   )
   :
   (
-    <div className='flex items-center justify-center h-screen'>
-      <p className="text-2xl font-medium text-gray-200">Unable to load project!</p>
-
+    <div className='flex flex-col items-center justify-center gap-5 h-screen text-center px-4'>
+      <p className="text-2xl font-medium text-gray-200">Unable to load project</p>
+      <button
+        onClick={() => navigate('/projects')}
+        className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 text-white font-medium hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 smooth-transition"
+      >
+        Back to my projects
+      </button>
     </div>
   )
 }
