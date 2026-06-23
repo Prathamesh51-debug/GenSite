@@ -3,19 +3,31 @@ import OpenAI from 'openai';
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.AI_API_KEY,
+  // Abort a hung request instead of waiting forever, and let our own
+  // model-fallback loop (below) handle retries rather than the SDK doubling them.
+  timeout: 150000,
+  maxRetries: 0,
 });
 
 // Ordered list of free models to try. Free OpenRouter models get throttled
 // (429 "rate-limited upstream") independently, so if the primary is busy we
 // fall back to the next one. Reorder / edit here in one place.
-export const FREE_MODELS = [
+// Free defaults. Override ANY of these via .env once you add OpenRouter credits
+// (no code change — just restart). e.g.:
+//   GEN_MODEL=anthropic/claude-3.5-sonnet
+//   EDIT_MODEL=anthropic/claude-3.5-sonnet
+export const FREE_MODELS = process.env.GEN_MODELS?.split(',').map((s) => s.trim()).filter(Boolean) ?? [
   'openai/gpt-oss-120b:free',
   'openai/gpt-oss-20b:free',
   'qwen/qwen3-coder:free',
 ];
 
-// Primary model (kept as a named export so call sites stay readable).
-export const FREE_MODEL = FREE_MODELS[0];
+// Primary model for fresh generation (good at design/layout).
+export const FREE_MODEL = process.env.GEN_MODEL || FREE_MODELS[0];
+
+// Model for EDIT tasks (revisions, single-element edits). A coder model follows
+// precise "change X to Y" instructions far better than the general model.
+export const EDIT_MODEL = process.env.EDIT_MODEL || 'qwen/qwen3-coder:free';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -41,8 +53,11 @@ export const createChatCompletion = async (
   { retriesPerModel = 1 }: { retriesPerModel?: number } = {}
 ): Promise<any> => {
   const requested: string | undefined = params?.model;
-  const models = requested && !FREE_MODELS.includes(requested)
-    ? [requested, ...FREE_MODELS]
+  // Always try the requested model FIRST, then fall back to the rest. This lets
+  // call sites route different tasks to different models (e.g. a coder model for
+  // edits) instead of always starting from FREE_MODELS[0].
+  const models = requested
+    ? [requested, ...FREE_MODELS.filter((m) => m !== requested)]
     : [...FREE_MODELS];
 
   let lastError: any;
