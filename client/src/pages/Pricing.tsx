@@ -21,7 +21,7 @@ const Pricing = () => {
 
   const handlePurchase = async (planId: string) => {
     try {
-      if (!session?.user) toast('Please login to purchase credits');
+      if (!session?.user) return toast('Please login to purchase credits');
       const { data } = await api.post('api/user/purchase-credits', { planId });
       window.location.href = data.payment_link;
     } catch (error: any) {
@@ -32,7 +32,7 @@ const Pricing = () => {
 
   return (
     <div className="relative text-white overflow-hidden">
-      {/* Ambient background */}
+      {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
@@ -40,18 +40,18 @@ const Pricing = () => {
       </div>
 
       <div className="w-full max-w-6xl mx-auto px-4 min-h-[80vh]">
-        {/* Header */}
+        {}
         <div className="text-center mt-20 animate-fade-in-down">
           <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Pricing</p>
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mt-3">
-            Simple, <span className="text-gradient">transparent</span> pricing
-          </h2>
-          <p className="text-gray-400 text-base max-w-md mx-auto mt-4">
+          <h1 className="text-shimmer text-4xl md:text-5xl font-semibold tracking-tight mt-3">
+            Simple, transparent pricing
+          </h1>
+          <p className="text-shimmer text-base max-w-md mx-auto mt-4">
             Start for free and scale up as you grow. Find the perfect plan for your website-building needs.
           </p>
         </div>
 
-        {/* Plans */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 items-stretch">
           {plans.map((plan, idx) => {
             const popular = plan.name.toLowerCase() === 'pro';
@@ -61,7 +61,7 @@ const Pricing = () => {
                 className={`relative animate-fade-in-up ${popular ? 'md:-mt-4 md:mb-4' : ''}`}
                 style={{ animationDelay: `${idx * 0.12}s` }}
               >
-                {/* gradient border for popular */}
+                {}
                 <div className={`h-full rounded-2xl p-px ${popular ? 'gradient-border shadow-premium' : 'bg-white/10'}`}>
                   <div className={`relative h-full flex flex-col rounded-2xl p-7 ${popular ? 'bg-zinc-950/90' : 'bg-white/[0.03] backdrop-blur-xl'}`}>
                     {popular && (
