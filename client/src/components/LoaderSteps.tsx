@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 
 const steps = [
     {icon: ScanLineIcon, label: "Analyzing your request..."},
-    {icon: SquareIcon, label: "generating layout structure..."},
+    {icon: SquareIcon, label: "Generating layout structure..."},
     {icon: TriangleIcon, label: "Assembling UI components..."},
     {icon: CircleIcon, label: "Finalizing your website..."},
 ]
@@ -25,7 +25,7 @@ const LoaderSteps = () => {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center 
     bg-gray-950 relative overflow-hidden text-white">
-        <div className="bsolute inset-0 bg-linear-to-br from-blue-500/10
+        <div className="absolute inset-0 bg-linear-to-br from-blue-500/10
         via-purple-500/10 to-fuchsia-500/10 blur-3xl animate-pulse">
 
         </div>
