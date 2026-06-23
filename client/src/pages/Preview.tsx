@@ -35,12 +35,11 @@ const Preview = () => {
   }
 
   useEffect(() => {
-    // Fix: fetchCode expects no arguments.
     if (!isPending && session?.user) {
       fetchCode()
+    } else if (!isPending && !session?.user) {
+      setLoading(false)
     }
-    // dependencies: add session, isPending, projectId, versionId for proper data sync
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPending, session, projectId, versionId])
 
   if (loading) {
@@ -52,8 +51,14 @@ const Preview = () => {
   }
   return (
     <div className="h-screen">
-      {code && <ProjectPreview project={{ current_code: code } as Project}
-        isGenerating={false} showEditorPanel={false} />}
+      {code ? (
+        <ProjectPreview project={{ current_code: code } as Project}
+          isGenerating={false} showEditorPanel={false} />
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          Nothing to preview yet.
+        </div>
+      )}
     </div>
   )
 }
