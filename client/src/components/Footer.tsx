@@ -32,7 +32,11 @@ const footerLinks = [
   },
 ];
 
-const socials = [TwitterIcon, GithubIcon, LinkedinIcon];
+const socials = [
+  { Icon: TwitterIcon, label: 'Twitter', href: '#' },
+  { Icon: GithubIcon, label: 'GitHub', href: '#' },
+  { Icon: LinkedinIcon, label: 'LinkedIn', href: '#' },
+];
 
 const Footer = () => {
   return (
@@ -40,7 +44,7 @@ const Footer = () => {
       <div className="divider-gradient w-full" />
       <div className="max-w-6xl mx-auto px-6 pt-16 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
-          {/* Brand */}
+          {}
           <div className="col-span-2">
             <Link to="/" className="inline-flex items-center gap-2">
               <img src={assets.logo} alt="logo" className="h-7" />
@@ -49,10 +53,11 @@ const Footer = () => {
               Turn a single prompt into a beautiful, responsive website. Design, build and publish — powered by AI.
             </p>
             <div className="flex items-center gap-3 mt-6">
-              {socials.map((Icon, i) => (
+              {socials.map(({ Icon, label, href }) => (
                 <a
-                  key={i}
-                  href="#"
+                  key={label}
+                  href={href}
+                  aria-label={label}
                   className="flex items-center justify-center size-9 rounded-lg glass hover:bg-white/10 hover:text-white hover:-translate-y-0.5 smooth-transition"
                 >
                   <Icon className="size-4" />
@@ -61,7 +66,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Link columns */}
+          {}
           {footerLinks.map((col) => (
             <div key={col.title}>
               <h4 className="text-white font-medium text-sm mb-4">{col.title}</h4>
