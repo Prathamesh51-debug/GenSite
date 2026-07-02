@@ -10,5 +10,19 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src")
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the heavy visual libs into their own cached chunks (they're mostly
+        // lazy-loaded and not needed on mobile).
+        manualChunks: {
+          three: ['three', '@react-three/fiber'],
+          spline: ['@splinetool/react-spline', '@splinetool/runtime'],
+          motion: ['framer-motion', 'motion', 'gsap', 'lenis'],
+          particles: ['@tsparticles/engine', '@tsparticles/react', '@tsparticles/slim', 'ogl'],
+        },
+      },
+    },
+  },
 })

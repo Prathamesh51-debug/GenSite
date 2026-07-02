@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /projects
+Disallow: /preview
+Disallow: /account
+Disallow: /loading
+
+Sitemap: https://ai-website-builder-prathamesh-three-amber.vercel.app/sitemap.xml
