@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface ColorRGB {
   r: number;
@@ -858,6 +858,12 @@ export default function SplashCursor({
 
     let lastUpdateTime = Date.now();
     let colorUpdateTimer = 0.0;
+    let animationFrameId = 0;
+    // One abort signal removes every window/document listener on cleanup, and the
+    // captured RAF id lets us stop the loop — otherwise unmounting (or a re-render)
+    // leaks the fluid sim's animation frame and listeners.
+    const listenerAC = new AbortController();
+    const listenerOpts: AddEventListenerOptions = { signal: listenerAC.signal };
 
     function updateFrame() {
       const dt = calcDeltaTime();
@@ -866,7 +872,7 @@ export default function SplashCursor({
       applyInputs();
       step(dt);
       render(null);
-      requestAnimationFrame(updateFrame);
+      animationFrameId = requestAnimationFrame(updateFrame);
     }
 
     function calcDeltaTime() {
@@ -1212,7 +1218,7 @@ export default function SplashCursor({
       const posY = scaleByPixelRatio(e.clientY);
       updatePointerDownData(pointer, -1, posX, posY);
       clickSplat(pointer);
-    });
+    }, listenerOpts);
 
     function handleFirstMouseMove(e: MouseEvent) {
       const pointer = pointers[0];
@@ -1223,7 +1229,7 @@ export default function SplashCursor({
       updatePointerMoveData(pointer, posX, posY, color);
       document.body.removeEventListener('mousemove', handleFirstMouseMove);
     }
-    document.body.addEventListener('mousemove', handleFirstMouseMove);
+    document.body.addEventListener('mousemove', handleFirstMouseMove, listenerOpts);
 
     window.addEventListener('mousemove', e => {
       const pointer = pointers[0];
@@ -1231,7 +1237,7 @@ export default function SplashCursor({
       const posY = scaleByPixelRatio(e.clientY);
       const color = pointer.color;
       updatePointerMoveData(pointer, posX, posY, color);
-    });
+    }, listenerOpts);
 
     function handleFirstTouchStart(e: TouchEvent) {
       const touches = e.targetTouches;
@@ -1244,7 +1250,7 @@ export default function SplashCursor({
       }
       document.body.removeEventListener('touchstart', handleFirstTouchStart);
     }
-    document.body.addEventListener('touchstart', handleFirstTouchStart);
+    document.body.addEventListener('touchstart', handleFirstTouchStart, listenerOpts);
 
     window.addEventListener(
       'touchstart',
@@ -1257,7 +1263,7 @@ export default function SplashCursor({
           updatePointerDownData(pointer, touches[i].identifier, posX, posY);
         }
       },
-      false
+      listenerOpts
     );
 
     window.addEventListener(
@@ -1271,7 +1277,7 @@ export default function SplashCursor({
           updatePointerMoveData(pointer, posX, posY, pointer.color);
         }
       },
-      false
+      listenerOpts
     );
 
     window.addEventListener('touchend', e => {
@@ -1280,25 +1286,18 @@ export default function SplashCursor({
       for (let i = 0; i < touches.length; i++) {
         updatePointerUpData(pointer);
       }
-    });
-  }, [
-    SIM_RESOLUTION,
-    DYE_RESOLUTION,
-    CAPTURE_RESOLUTION,
-    DENSITY_DISSIPATION,
-    VELOCITY_DISSIPATION,
-    PRESSURE,
-    PRESSURE_ITERATIONS,
-    CURL,
-    SPLAT_RADIUS,
-    SPLAT_FORCE,
-    SHADING,
-    COLOR_UPDATE_SPEED,
-    BACK_COLOR,
-    TRANSPARENT,
-    RAINBOW_MODE,
-    COLOR
-  ]);
+    }, listenerOpts);
+
+    // Tear down the RAF loop and every listener when the component unmounts.
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      listenerAC.abort();
+    };
+    // Initialize the sim ONCE — the tuning props are read at mount and never change
+    // at runtime, and keeping object-valued props in the dep array re-ran this whole
+    // effect (re-creating the WebGL context + listeners) on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="fixed top-0 left-0 z-50 pointer-events-none w-full h-full">

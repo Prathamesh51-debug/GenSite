@@ -1,5 +1,5 @@
 import { AuthUIProvider } from "@daveyplate/better-auth-ui"
-import { authClient } from "@/lib/auth-client"
+import { authClient } from "@/shared/api/auth-client"
 import { useNavigate, NavLink } from "react-router-dom"
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
-import { assets } from '../assets/assets';
 import { TwitterIcon, GithubIcon, LinkedinIcon, SparklesIcon } from 'lucide-react';
 
-const footerLinks = [
+const REPO = 'https://github.com/Prathamesh51-debug/AiWebsiteBuilder';
+
+type FooterLink = { label: string; to: string } | { label: string; href: string };
+
+const footerLinks: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
     links: [
@@ -15,27 +18,24 @@ const footerLinks = [
   {
     title: 'Resources',
     links: [
-      { label: 'Documentation', to: '#' },
-      { label: 'Guides', to: '#' },
-      { label: 'Changelog', to: '#' },
-      { label: 'Support', to: '#' },
+      { label: 'Documentation', href: `${REPO}#readme` },
+      { label: 'Changelog', href: `${REPO}/commits/main` },
+      { label: 'Support', href: `${REPO}/issues` },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'About', to: '#' },
-      { label: 'Blog', to: '#' },
-      { label: 'Careers', to: '#' },
-      { label: 'Contact', to: '#' },
+      { label: 'About', href: 'https://github.com/Prathamesh51-debug' },
+      { label: 'Contact', href: 'mailto:prathameshprasad510@gmail.com' },
     ],
   },
 ];
 
 const socials = [
-  { Icon: TwitterIcon, label: 'Twitter', href: '#' },
-  { Icon: GithubIcon, label: 'GitHub', href: '#' },
-  { Icon: LinkedinIcon, label: 'LinkedIn', href: '#' },
+  { Icon: TwitterIcon, label: 'X (Twitter)', href: 'https://x.com/prathameshuw' },
+  { Icon: GithubIcon, label: 'GitHub', href: 'https://github.com/Prathamesh51-debug' },
+  { Icon: LinkedinIcon, label: 'LinkedIn', href: 'https://www.linkedin.com/in/prathamesh510/' },
 ];
 
 const Footer = () => {
@@ -47,7 +47,7 @@ const Footer = () => {
           {}
           <div className="col-span-2">
             <Link to="/" className="inline-flex items-center gap-2">
-              <img src={assets.logo} alt="logo" className="h-7" />
+              <img src="/logo.png" alt="GenSite" className="h-7" />
             </Link>
             <p className="text-sm text-gray-400 mt-4 max-w-xs leading-relaxed">
               Turn a single prompt into a beautiful, responsive website. Design, build and publish — powered by AI.
@@ -57,6 +57,8 @@ const Footer = () => {
                 <a
                   key={label}
                   href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="flex items-center justify-center size-9 rounded-lg glass hover:bg-white/10 hover:text-white hover:-translate-y-0.5 smooth-transition"
                 >
@@ -73,9 +75,20 @@ const Footer = () => {
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.to} className="text-sm hover:text-indigo-400 smooth-transition">
-                      {link.label}
-                    </Link>
+                    {'to' in link ? (
+                      <Link to={link.to} className="text-sm hover:text-indigo-400 smooth-transition">
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm hover:text-indigo-400 smooth-transition"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -84,10 +97,10 @@ const Footer = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-14 pt-8 border-t border-white/10">
-          <p className="text-xs text-gray-500">© {new Date().getFullYear()} SiteBuilder — crafted by Prathamesh. All rights reserved.</p>
+          <p className="text-xs text-gray-500">© {new Date().getFullYear()} GenSite — crafted by Prathamesh. All rights reserved.</p>
           <div className="flex items-center gap-6 text-xs text-gray-500">
-            <a href="#" className="hover:text-gray-300 smooth-transition">Privacy</a>
-            <a href="#" className="hover:text-gray-300 smooth-transition">Terms</a>
+            <Link to="/privacy" className="hover:text-gray-300 smooth-transition">Privacy</Link>
+            <Link to="/terms" className="hover:text-gray-300 smooth-transition">Terms</Link>
             <span className="flex items-center gap-1.5"><SparklesIcon className="size-3 text-indigo-400" /> Powered by AI</span>
           </div>
         </div>

@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { assets } from '../assets/assets';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/shared/api/auth-client';
 import { UserButton } from '@daveyplate/better-auth-ui'
-import api from '@/configs/axios';
-import { toast } from 'sonner';
 import { MenuIcon, XIcon } from 'lucide-react';
+import { useCredits } from '@/features/billing/use-credits';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -19,25 +17,13 @@ const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
     const navigate = useNavigate()
     const { pathname } = useLocation()
-    const [credits, setCredits] = useState(0)
+    const openBtnRef = useRef<HTMLButtonElement>(null)
+    const closeBtnRef = useRef<HTMLButtonElement>(null)
 
     const {data: session} = authClient.useSession()
-
-    const getCredits = async () => {
-      try {
-        const {data} =await api.get('/api/user/credits');
-        setCredits(data.credits)
-      } catch (error: any) {
-        toast.error(error?.response?.data?.message || error.message)
-        console.log(error);
-      }
-    }
-
-    useEffect(()=>{
-      if(session?.user){
-        getCredits()
-      }
-    },[session?.user])
+    // Live balance via the shared hook (single source of truth; auto-refreshes on
+    // any credits change). Returns null until loaded.
+    const credits = useCredits()
 
     useEffect(() => {
       const onScroll = () => setScrolled(window.scrollY > 12);
@@ -48,12 +34,27 @@ const Navbar = () => {
 
     useEffect(() => {
       if (!menuOpen) return;
-      const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') { setMenuOpen(false); return; }
+        if (e.key === 'Tab') {
+          // Trap focus within the open dialog.
+          const menu = document.getElementById('mobile-menu');
+          const focusables = menu?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+          if (!focusables || focusables.length === 0) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      };
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', onKey);
+      // Move focus into the dialog on open; restore it to the trigger on close.
+      closeBtnRef.current?.focus();
       return () => {
         document.body.style.overflow = '';
         window.removeEventListener('keydown', onKey);
+        openBtnRef.current?.focus();
       };
     }, [menuOpen]);
 
@@ -65,7 +66,7 @@ const Navbar = () => {
           : 'bg-transparent border-b border-transparent'
       }`}>
         <Link to='/' className="group flex items-center gap-2 smooth-transition">
-              <img src={assets.logo} alt="logo" className='h-5 sm:h-7 group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(129,140,248,0.6)] smooth-transition'/>
+              <img src="/logo.png" alt="GenSite" className='h-5 sm:h-7 group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(129,140,248,0.6)] smooth-transition'/>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -87,8 +88,8 @@ const Navbar = () => {
               </button>
             ) : (
               <>
-              <Link to='/pricing' aria-label={`${credits} credits remaining — view pricing`} className='bg-zinc-900 px-4 py-1.5 text-xs sm:text-sm border border-zinc-800 text-gray-300 rounded-md hover:border-zinc-700 hover:text-white smooth-transition animate-scale-in'>
-                Credits: <span className='text-indigo-300 font-semibold'>{credits}</span>
+              <Link to='/pricing' aria-label={credits == null ? 'View pricing' : `${credits} credits remaining — view pricing`} className='bg-zinc-900 px-4 py-1.5 text-xs sm:text-sm border border-zinc-800 text-gray-300 rounded-md hover:border-zinc-700 hover:text-white smooth-transition animate-scale-in'>
+                Credits: <span className='text-indigo-300 font-semibold'>{credits ?? '—'}</span>
               </Link>
               <div className="animate-scale-in animate-delay-200">
                 <UserButton size='icon' />
@@ -96,6 +97,7 @@ const Navbar = () => {
               </>
             )}
           <button
+              ref={openBtnRef}
               id="open-menu"
               aria-label="Open menu"
               aria-expanded={menuOpen}
@@ -116,7 +118,25 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
-            <button aria-label="Close menu" className="active:scale-90 size-11 p-1 items-center justify-center glass hover:bg-white/10 transition rounded-lg flex mt-4" onClick={() => setMenuOpen(false)} >
+
+            {/* Account / credits — so logged-in users can see their balance and sign out from mobile */}
+            {session?.user ? (
+              <div className="flex items-center gap-4">
+                <Link to="/pricing" onClick={() => setMenuOpen(false)} className="bg-zinc-900 px-4 py-1.5 text-sm border border-zinc-800 text-gray-300 rounded-md">
+                  Credits: <span className="text-indigo-300 font-semibold">{credits ?? '—'}</span>
+                </Link>
+                <UserButton size="icon" />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setMenuOpen(false); navigate('/auth/signin'); }}
+                className="px-5 py-2 text-base font-medium bg-indigo-600 hover:bg-indigo-500 active:scale-95 smooth-transition rounded-lg"
+              >
+                Get started
+              </button>
+            )}
+
+            <button ref={closeBtnRef} aria-label="Close menu" className="active:scale-90 size-11 p-1 items-center justify-center glass hover:bg-white/10 transition rounded-lg flex mt-4" onClick={() => setMenuOpen(false)} >
               <XIcon className="size-6" />
             </button>
           </div>

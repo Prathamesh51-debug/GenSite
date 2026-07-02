@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { Message, Project, Version } from '../types';
+import type { Message, Project, Version } from '@/types';
 import { BotIcon, EyeIcon, Loader2Icon, SendIcon, UserIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '@/configs/axios';
+import api from '@/shared/api/axios';
 import { toast } from 'sonner';
+import { emitCreditsChanged } from '@/features/billing/credits-bus';
+import { useCredits } from '@/features/billing/use-credits';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 
 interface SidebarProps {
     isMenuOpen: boolean;
@@ -11,12 +14,22 @@ interface SidebarProps {
     setProject: (project: Project)=> void;
     isGenerating : boolean;
     setIsGenerating: (isGenerating: boolean)=> void;
+    /** The page currently open in the preview — chat edits target this page. */
+    activePath?: string;
 }
 
-const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating}: SidebarProps) => {
+const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating, activePath}: SidebarProps) => {
   
     const messageRef = useRef<HTMLDivElement>(null)
+    const revisionTimer = useRef<ReturnType<typeof setInterval> | null>(null)
     const [input, setInput] = useState('')
+    const credits = useCredits()
+    const creditsLoading = credits === null
+    const insufficient = credits !== null && credits < 5
+    const confirm = useConfirm()
+
+    // Clear any in-flight revision poll if the editor unmounts mid-request.
+    useEffect(() => () => { if (revisionTimer.current) clearInterval(revisionTimer.current) }, [])
 
     const fetchProject =async () => {
       try {
@@ -31,10 +44,14 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
 
     const handleRollback =async (VersionId: string) =>{
         try {
-          const confirm = window.confirm('Are you sure you want to rollback to this version?')
-          if(!confirm) return;
+          const ok = await confirm({
+            title: 'Roll back to this version?',
+            message: 'This restores the selected version as your current site. You can roll forward again from history.',
+            confirmText: 'Roll back',
+          })
+          if(!ok) return;
           setIsGenerating(true)
-          const {data} = await api.get(`/api/project/rollback/${project.id}/${VersionId}`);
+          const {data} = await api.post(`/api/project/rollback/${project.id}/${VersionId}`);
           const { data: data2} =await api.get(`/api/user/project/${project.id}`);
           toast.success(data.message)
           setProject(data2.project)
@@ -47,28 +64,31 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
         }
     }
 
+    const clearRevisionTimer = () => {
+      if (revisionTimer.current) { clearInterval(revisionTimer.current); revisionTimer.current = null }
+    }
+
     const handleRevisions = async (e: React.FormEvent) => {
         e.preventDefault()
-        let interval: number | undefined;
         try {
           setIsGenerating(true);
-          interval = setInterval(()=>{
+          revisionTimer.current = setInterval(()=>{
             fetchProject();
           },10000)
           const {data} = await api.post(`/api/project/revision/${project.id}`,
-            {message: input}
+            {message: input, path: activePath}
           )
           fetchProject();
+          emitCreditsChanged();
           toast.success(data.message)
           setInput('')
-            clearInterval(interval)
-            setIsGenerating(false)
+          clearRevisionTimer()
+          setIsGenerating(false)
         } catch (error: any) {
           setIsGenerating(false)
           toast.error(error?.response?.data?.message || error.message);
-          console.log(error);
-          clearInterval(interval)
-          
+          console.error(error);
+          clearRevisionTimer()
         }
     }
 
@@ -78,6 +98,9 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
         messageRef.current.scrollIntoView({behavior:'smooth'})
     }
   },[project.conversation.length, isGenerating])
+
+    // Number versions in chronological order for readable labels ("Version 3").
+    const versionNumbers = new Map(project.versions.map((v, i) => [v.id, i + 1]))
 
     return (
     <div
@@ -130,7 +153,9 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                     rounded-xl bg-gray-800 text-gray-100 shadow flex flex-col
                     gap-2'>
                         <div className='text-xs font-medium'>
-                            Code Updated <br />
+                            Version {versionNumbers.get(ver.id)}
+                            {ver.description ? <span className='text-gray-400 font-normal'> · {ver.description}</span> : null}
+                            <br />
                             <span className='text-gray-500 text-xs font-normal'>
                                 {new Date(ver.timestamp).toLocaleString()}
                             </span>
@@ -144,7 +169,7 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                                 bg-indigo-500 hover:bg-indigo-600
                                 text-white'>Roll back to this version</button>
                             )}
-                            <Link target='_blank' to={`/preview/${project.id}/${ver.id}`}>
+                            <Link target='_blank' rel='noopener noreferrer' to={`/preview/${project.id}/${ver.id}`}>
                             <EyeIcon className='size-6 p-1 bg-gray-700
                             hover:bg-indigo-500 transition-colors rounded'/>
                             </Link>
@@ -179,12 +204,23 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
         </div>
         {/* input area */}
         <form onSubmit={handleRevisions} className='m-3 relative'>
+            <div className='flex items-center justify-between mb-1.5 px-1'>
+              {insufficient ? (
+                <Link to='/pricing' className='text-[11px] font-medium text-amber-300/90 hover:text-amber-200'>Need 5 credits — get more</Link>
+              ) : (
+                <span className='text-[11px] text-gray-500'>Each change costs 5 credits</span>
+              )}
+            </div>
             <div className='flex items-center gap-2'>
-                <textarea onChange={(e)=>setInput(e.target.value)} value={input} rows={4} placeholder='Describe your website or request
-                changes...' className='flex-1 p-3 rounded-xl resize-none text-sm
+                <textarea onChange={(e)=>setInput(e.target.value)} value={input} rows={4}
+                maxLength={2000}
+                aria-label='Describe your website or request changes'
+                onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey && !e.nativeEvent.isComposing){ e.preventDefault(); if(input.trim() && !isGenerating && !insufficient && !creditsLoading) e.currentTarget.form?.requestSubmit(); } }}
+                placeholder='Describe your website or request
+                changes... (Enter to send, Shift+Enter for a new line)' className='flex-1 p-3 rounded-xl resize-none text-sm
                 outline-none ring ring-gray-700 focus:ring-indigo-500 bg-gray-800
                 text-gray-100 placeholder-gray-400 transition-all' disabled={isGenerating} />
-                <button disabled={isGenerating || !input.trim()} className='absolute bottom-2.5 right-2.5 rounded-full
+                <button disabled={isGenerating || !input.trim() || insufficient || creditsLoading} className='absolute bottom-2.5 right-2.5 rounded-full
                 bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600
                 hover:to-indigo-700 text-white transition-colors
                 disabled:opacity-60'>

@@ -1,10 +1,10 @@
 "use client";
-import React, { useId, useMemo } from "react";
+import React, { useId } from "react";
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import type { Container, SingleOrMultiple } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
-import { cn } from "../../lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { motion, useAnimation } from "framer-motion";
  
 type ParticlesProps = {
@@ -18,7 +18,7 @@ type ParticlesProps = {
   particleColor?: string | string[];
   particleDensity?: number;
 };
-export const SparklesCore = (props: ParticlesProps) => {
+const SparklesCoreImpl = (props: ParticlesProps) => {
   const {
     id,
     className,
@@ -69,7 +69,7 @@ export const SparklesCore = (props: ParticlesProps) => {
               zIndex: 1,
             },
  
-            fpsLimit: 120,
+            fpsLimit: 60,
             interactivity: {
               events: {
                 onClick: {
@@ -432,3 +432,11 @@ export const SparklesCore = (props: ParticlesProps) => {
     </motion.div>
   );
 };
+
+// Memoized: the particle engine is expensive to (re)initialize. Without this, any
+// re-render of a parent (e.g. typing in the hero textarea) re-runs this component,
+// hands <Particles> a fresh `options` object, and tsparticles tears down and
+// rebuilds every particle — pegging the GPU. With stable props this is skipped
+// entirely. (Callers MUST pass a stable `particleColor` array — a new array literal
+// on each render would defeat the memo.)
+export const SparklesCore = React.memo(SparklesCoreImpl);
