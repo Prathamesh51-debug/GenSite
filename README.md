@@ -230,14 +230,6 @@ The app ships with in-product legal pages, served by the SPA:
 
 These describe what data is stored (account, projects, billing records via Stripe) and the acceptable-use terms for generated sites. Update the copy in `client/src/pages/Privacy.tsx` and `client/src/pages/Terms.tsx` to match your deployment before going live.
 
-## 🗺️ Roadmap
-
-- [ ] **Agentic generation** — a tool-calling agent that *plans → generates → validates → self-corrects* in a loop
-- [ ] Multi-node scaling — move the in-flight/edit locks to Redis (see `server/SCALING.md`)
-- [ ] Custom-domain publishing
-- [ ] AI image generation / real asset sourcing instead of placeholders
-- [ ] Usage analytics and observability dashboards
-
 ## 👤 Author
 
 **Prathamesh** · [GitHub](https://github.com/Prathamesh51-debug)
