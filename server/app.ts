@@ -1,6 +1,5 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './shared/lib/auth.js';
 import prisma from './shared/lib/prisma.js';
@@ -18,16 +17,18 @@ export const createApp = () => {
     const isProd = process.env.NODE_ENV === 'production';
     const trustedOrigins = parseTrustedOrigins();
 
-    // Baseline security headers for a JSON API (CSP/CORP off — no HTML served here).
+    // Baseline security headers for a JSON API (no framing, no MIME sniffing, HSTS in prod).
     app.disable('x-powered-by');
-    app.use(helmet({
-        contentSecurityPolicy: false,
-        crossOriginResourcePolicy: false,
-        crossOriginOpenerPolicy: false,
-        crossOriginEmbedderPolicy: false,
-        frameguard: { action: 'deny' },
-        referrerPolicy: { policy: 'no-referrer' },
-    }));
+    app.use((_req, res, next) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+        res.setHeader('X-DNS-Prefetch-Control', 'off');
+        if (isProd) {
+            res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+        }
+        next();
+    });
 
     // Render terminates TLS at a proxy; trust it so the rate limiter keys on real client IP.
     app.set('trust proxy', 1);

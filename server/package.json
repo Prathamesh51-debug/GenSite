@@ -23,7 +23,6 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.1",
-    "helmet": "^8.2.0",
     "openai": "^6.16.0",
     "pg": "^8.17.2",
     "stripe": "^20.2.0",
