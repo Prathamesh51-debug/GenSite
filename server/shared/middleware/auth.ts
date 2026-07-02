@@ -17,9 +17,10 @@ export const protect = async (req: Request, res:Response, next: NextFunction) =>
 
         next();
     } catch (error: any) {
-        console.log(error);
-        res.status(401).json({ message: error.code || error.message });
-        
+        // Runs on every unauthenticated request (bots, expired sessions). Log only
+        // the message server-side, and never echo internal error detail to the client.
+        console.error('Auth check failed:', error?.message);
+        res.status(401).json({ message: 'Unauthorized' });
     }
-    
+
 }
