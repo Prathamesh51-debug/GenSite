@@ -1,10 +1,10 @@
 import React from 'react'
-import { appPlans } from '../assets/assets';
-import Footer from '../components/Footer';
-import { authClient } from '@/lib/auth-client';
+import Footer from '@/shared/components/Footer';
+import Seo from '@/shared/components/Seo';
+import { authClient } from '@/shared/api/auth-client';
 import { toast } from 'sonner';
-import api from '@/configs/axios';
-import { CheckIcon, SparklesIcon, ArrowRightIcon } from 'lucide-react';
+import api from '@/shared/api/axios';
+import { CheckIcon, SparklesIcon, ArrowRightIcon, Loader2Icon } from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -17,21 +17,48 @@ interface Plan {
 
 const Pricing = () => {
   const { data: session } = authClient.useSession();
-  const [plans] = React.useState<Plan[]>(appPlans);
+  const [plans, setPlans] = React.useState<Plan[]>([]);
+  const [pendingPlan, setPendingPlan] = React.useState<string | null>(null);
+
+  // Pricing comes from the server (single source of truth), so the displayed price
+  // can never differ from what's charged at checkout.
+  React.useEffect(() => {
+    api.get('/api/user/plans')
+      .then(({ data }) => setPlans(data.plans))
+      .catch((error) => toast.error(error?.response?.data?.message || 'Could not load plans'));
+  }, []);
 
   const handlePurchase = async (planId: string) => {
+    if (pendingPlan) return; // in-flight lock — avoid creating duplicate checkout sessions
     try {
       if (!session?.user) return toast('Please login to purchase credits');
-      const { data } = await api.post('api/user/purchase-credits', { planId });
+      setPendingPlan(planId);
+      // Capture the current balance so the post-payment page can detect when the
+      // webhook has actually granted credits.
+      try {
+        const { data } = await api.get('/api/user/credits');
+        localStorage.setItem('creditsBefore', String(data.credits ?? 0));
+      } catch {
+        localStorage.removeItem('creditsBefore');
+      }
+      const { data } = await api.post('/api/user/purchase-credits', { planId });
+      if (!data?.payment_link) {
+        // Don't navigate to `/undefined` if the server didn't return a link.
+        throw new Error('Could not start checkout — please try again.');
+      }
       window.location.href = data.payment_link;
     } catch (error: any) {
-      console.log(error);
+      setPendingPlan(null);
+      // Leftover baseline would make the /loading page mis-detect a purchase.
+      localStorage.removeItem('creditsBefore');
+      console.error(error);
       toast.error(error?.response?.data?.message || error.message);
     }
   };
 
   return (
     <div className="relative text-white overflow-hidden">
+      <Seo title="Pricing" path="/pricing" description="Simple, transparent credit pricing for GenSite — start free and scale as you build." />
       {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
@@ -92,13 +119,18 @@ const Pricing = () => {
 
                     <button
                       onClick={() => handlePurchase(plan.id)}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium active:scale-95 smooth-transition ${
+                      disabled={pendingPlan !== null}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium active:scale-95 smooth-transition disabled:opacity-60 disabled:cursor-not-allowed ${
                         popular
                           ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-500/40 animate-gradient'
                           : 'glass hover:bg-white/10'
                       }`}
                     >
-                      Get {plan.name} <ArrowRightIcon className="size-4" />
+                      {pendingPlan === plan.id ? (
+                        <>Redirecting <Loader2Icon className="size-4 animate-spin" /></>
+                      ) : (
+                        <>Get {plan.name} <ArrowRightIcon className="size-4" /></>
+                      )}
                     </button>
                   </div>
                 </div>

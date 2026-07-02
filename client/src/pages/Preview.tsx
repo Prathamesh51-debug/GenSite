@@ -1,30 +1,34 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Loader2Icon } from "lucide-react";
-import ProjectPreview from "../components/ProjectPreview";
-import type { Project, Version } from "../types";
-import api from "@/configs/axios";
+import ProjectPreview from "@/features/editor/ProjectPreview";
+import type { Project } from "@/types";
+import api from "@/shared/api/axios";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/shared/api/auth-client";
 
 
 const Preview = () => {
 
   const { data: session, isPending } = authClient.useSession()
+  const navigate = useNavigate()
   const { projectId, versionId } = useParams();
   const [code, setCode] = useState('');
+  const [files, setFiles] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCode = async () => {
     try {
-      const { data } = await api.get(`/api/project/preview/${projectId}`)
-      setCode(data.project.current_code)
       if (versionId) {
-        data.project.versions.forEach((version: Version) => {
-          if (version.id === versionId) {
-            setCode(version.code)
-          }
-        })
+        // A specific version's full body (code + multi-page files) is fetched lazily
+        // — the preview list only carries version metadata now.
+        const { data } = await api.get(`/api/project/version/${projectId}/${versionId}`)
+        setCode(data.code || '')
+        setFiles(data.files ?? null)
+      } else {
+        const { data } = await api.get(`/api/project/preview/${projectId}`)
+        setCode(data.project.current_code || '')
+        setFiles(data.project.files ?? null)
       }
       setLoading(false)
     } catch (error: any) {
@@ -35,12 +39,15 @@ const Preview = () => {
   }
 
   useEffect(() => {
-    if (!isPending && session?.user) {
+    if (isPending) return
+    if (session?.user) {
       fetchCode()
-    } else if (!isPending && !session?.user) {
-      setLoading(false)
+    } else {
+      // Owner-only view — send anonymous visitors to sign in instead of leaving
+      // them on a dead "Nothing to preview yet" screen.
+      navigate('/auth/signin')
     }
-  }, [isPending, session, projectId, versionId])
+  }, [isPending, session?.user?.id, projectId, versionId])
 
   if (loading) {
     return (
@@ -52,7 +59,7 @@ const Preview = () => {
   return (
     <div className="h-screen">
       {code ? (
-        <ProjectPreview project={{ current_code: code } as Project}
+        <ProjectPreview project={{ current_code: code, files } as Project}
           isGenerating={false} showEditorPanel={false} />
       ) : (
         <div className="flex items-center justify-center h-full text-gray-400 text-sm">

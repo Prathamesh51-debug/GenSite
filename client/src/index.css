@@ -25,6 +25,18 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 .lenis.lenis-stopped { overflow: hidden; }
 
+/* Respect users who ask for less motion: neutralise CSS animations/transitions
+   globally. WebGL/canvas decorations (Aurora, particles, cursor) are gated
+   separately in JS since they don't go through CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 
 @keyframes fade-in {

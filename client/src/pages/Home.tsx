@@ -1,5 +1,6 @@
-import api from '@/configs/axios';
-import { authClient } from '@/lib/auth-client';
+import api from '@/shared/api/axios';
+import { authClient } from '@/shared/api/auth-client';
+import { useCredits } from '@/features/billing/use-credits';
 import {
   ArrowRightIcon, Loader2Icon, SparklesIcon, ZapIcon, PaletteIcon, RocketIcon,
   MessageSquareIcon, GlobeIcon, CodeIcon, ShieldCheckIcon, CheckIcon,
@@ -7,12 +8,14 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { motion, useMotionTemplate, useMotionValue, type Variants } from 'framer-motion';
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion, type Variants } from 'framer-motion';
 import gsap from 'gsap';
-import Footer from '../components/Footer';
-import SplineScene from '../components/SplineScene';
-import { SparklesCore } from '../components/ui/sparkles';
-import Aurora from '../components/reactbits/Aurora';
+import Footer from '@/shared/components/Footer';
+import SplineScene from '@/shared/components/SplineScene';
+import { SparklesCore } from '@/shared/ui/sparkles';
+import Aurora from '@/shared/ui/reactbits/Aurora';
+import Seo from '@/shared/components/Seo';
+import { isLowPowerDevice } from '@/shared/lib/device';
 
 const HERO_SPLINE = 'https://prod.spline.design/NEmNpfFUwA5GVzzA/scene.splinecode';
 
@@ -23,11 +26,19 @@ const examplePrompts = [
   'A modern store for a coffee brand',
 ];
 
+// Stable references for the WebGL/particle visuals. These MUST live at module
+// scope — a new array literal on every render would change prop identity and
+// defeat the memoization on <SparklesCore>, causing the particle field to
+// reinitialize (and the GPU to spike) on every keystroke.
+const SPARKLE_COLORS = ['#ffffff', '#e2cbff', '#c084fc', '#fcd34d'];
+const AURORA_STOPS = ['#4f46e5', '#7c3aed', '#a855f7'];
+
+// Honest capability highlights — no fabricated usage/rating/uptime numbers.
 const stats = [
-  { value: '12K+', label: 'Websites generated' },
-  { value: '30s', label: 'Average build time' },
-  { value: '4.9/5', label: 'Creator rating' },
-  { value: '99.9%', label: 'Uptime' },
+  { value: 'Multi-page', label: 'Sites from one prompt' },
+  { value: 'Live', label: 'Preview as it builds' },
+  { value: 'Tailwind', label: 'Clean, exportable code' },
+  { value: '1-click', label: 'Publish & share' },
 ];
 
 const steps = [
@@ -61,12 +72,165 @@ const Reveal = ({ children, className = '' }: { children: React.ReactNode; class
   <div className={`gsap-zoom ${className}`}>{children}</div>
 );
 
+// The prompt box owns its own `input`/`loading` state. Keeping it OUT of <Home>
+// means typing only re-renders this small form — not the hero's Spline 3D model,
+// Aurora shader or particle field. (Previously the input lived in <Home>, so every
+// keystroke re-rendered the entire hero and reinitialized the particles.)
+const PromptForm = () => {
+  const { data: session } = authClient.useSession();
+  const navigate = useNavigate();
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const credits = useCredits();
+  const insufficient = credits !== null && credits < 5;
+  // A signed-in user whose balance is still loading shouldn't be able to fire a
+  // create that the server will 403. Signed-OUT users keep an enabled button so
+  // the click still surfaces the "please sign in" prompt.
+  const creditsPending = !!session?.user && credits === null;
+
+  const [models, setModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState('auto');
+  useEffect(() => {
+    api.get('/api/user/models').then(({ data }) => setModels(data.models)).catch(() => {});
+  }, []);
+  const activeModel = models.find((m) => m.id === selectedModel);
+
+  const onSubmitHandler = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user) return toast.error('Please sign in to create a project');
+    if (!input.trim()) return toast.error('Please enter a message');
+    if (insufficient) { toast.error('You need at least 5 credits to create a project.'); return navigate('/pricing'); }
+
+    setLoading(true);
+    // Cold-start hint: the API on the free tier can take 30–60s to wake up. Use a
+    // stable id so we can dismiss it the moment the request resolves.
+    const slowTimer = window.setTimeout(() => {
+      toast('Waking the server… the first request can take up to a minute.', { id: 'cold-start', duration: 15000 });
+    }, 5000);
+    try {
+      const { data } = await api.post('/api/user/project', { initial_prompt: input, model: selectedModel });
+      // autostart tells the editor THIS is a fresh creation, so it may auto-generate
+      // (reopening an ungenerated project later won't silently re-charge).
+      navigate(`/projects/${data.projectId}`, { state: { autostart: true } });
+    } catch (error: any) {
+      setLoading(false);
+      toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      clearTimeout(slowTimer);
+      toast.dismiss('cold-start');
+    }
+  };
+
+  return (
+    <>
+      <motion.form
+        variants={fadeUp}
+        onSubmit={onSubmitHandler}
+        whileHover={{ scale: 1.005 }}
+        className="relative w-full bg-[#16161c]/40 backdrop-blur-2xl border border-white/10 rounded-[24px] p-5 mt-10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all duration-300 group"
+      >
+        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            // Ignore Enter while an IME composition is active (CJK input), else it
+            // submits mid-word.
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              if (input.trim() && !loading && !insufficient && !creditsPending) e.currentTarget.form?.requestSubmit();
+            }
+          }}
+          className="bg-transparent outline-none text-gray-100 resize-none w-full placeholder:text-gray-500 text-[15px] relative z-10 leading-relaxed"
+          rows={3}
+          maxLength={2000}
+          aria-label="Describe the website you want to build"
+          placeholder="Describe the website you want — e.g. a sleek landing page for a coffee brand with a menu and contact section"
+          required
+        />
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5 mt-2 relative z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={loading}
+              aria-label="Generation model"
+              title={activeModel?.description}
+              className="max-w-[9.5rem] sm:max-w-[15rem] truncate bg-white/5 border border-white/10 rounded-lg text-xs text-gray-200 px-2 py-1.5 outline-none focus:border-indigo-400/50 cursor-pointer disabled:opacity-60"
+            >
+              {models.length === 0 && <option value="auto">Auto — Smart mix</option>}
+              {models.map((m) => (
+                <option key={m.id} value={m.id} className="bg-zinc-900 text-gray-100">{m.label}</option>
+              ))}
+            </select>
+            {insufficient ? (
+              <button type="button" onClick={() => navigate('/pricing')} className="hidden sm:flex items-center gap-1 text-xs font-medium text-amber-300/90 hover:text-amber-200 transition-colors">
+                Need 5 credits
+              </button>
+            ) : (
+              <span className="hidden sm:inline text-xs text-gray-500">· 5 credits</span>
+            )}
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:from-[#6d28d9] hover:to-[#7c3aed] disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] border border-white/10"
+            disabled={loading || insufficient || creditsPending}
+          >
+            {!loading ? (
+              <>Create with AI <ArrowRightIcon className="size-4" /></>
+            ) : (
+              <>Creating <Loader2Icon className="animate-spin size-4 text-white" /></>
+            )}
+          </motion.button>
+        </div>
+        {activeModel && (
+          <p className="mt-2.5 text-[11px] text-gray-500 relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-gray-400">{activeModel.description}</span>
+            {(activeModel.bestFor || []).map((tag: string) => (
+              <span key={tag} className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-400">{tag}</span>
+            ))}
+          </p>
+        )}
+      </motion.form>
+
+      <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 mt-8 w-full max-w-[500px]">
+        <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Try:</span>
+        {examplePrompts.map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            onClick={() => setInput(prompt)}
+            className="text-xs text-gray-300 bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:border-indigo-400/60 hover:bg-white/10 hover:text-white hover:shadow-[0_0_15px_rgba(124,58,237,0.2)] transition-all duration-300"
+          >
+            {prompt}
+          </button>
+        ))}
+      </motion.div>
+    </>
+  );
+};
+
 const Home = () => {
   const { data: session } = authClient.useSession();
   const navigate = useNavigate();
 
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const reduceMotion = useReducedMotion();
+  // Cheap laptops without a dedicated GPU lag on the stacked WebGL visuals — probe
+  // once and fall back to lightweight gradients for the whole hero.
+  const [lowPower] = useState(isLowPowerDevice);
+  const heavyFx = !reduceMotion && !lowPower;
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  // Don't pull the multi-MB Spline 3D runtime/scene on mobile, low-power devices, or
+  // for reduced-motion users — they get a lightweight gradient glow instead.
+  const showSpline = isDesktop && heavyFx;
 
   const mx = useMotionValue(-400);
   const my = useMotionValue(-400);
@@ -105,34 +269,19 @@ const Home = () => {
     return () => ctx.revert();
   }, []);
 
-  const onSubmitHandler = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (!session?.user) {
-        return toast.error('Please sign in to create a project');
-      } else if (!input.trim()) {
-        return toast.error('Please enter a message');
-      }
-      setLoading(true);
-      const { data } = await api.post('/api/user/project', { initial_prompt: input });
-      setLoading(false);
-      navigate(`/projects/${data.projectId}`);
-    } catch (error: any) {
-      setLoading(false);
-      toast.error(error?.response?.data?.message || error.message);
-    }
-  };
-
   return (
     <div ref={rootRef} className="text-white text-sm">
+      <Seo path="/" />
       <section className="relative flex flex-col items-center px-4 md:px-16 lg:px-24 xl:px-32" onMouseMove={handleHeroMove}>
 
         {}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           {}
-          <div className="absolute inset-x-0 top-0 h-[120%] opacity-60">
-            <Aurora colorStops={['#4f46e5', '#7c3aed', '#a855f7']} amplitude={1.1} blend={0.55} speed={0.8} />
-          </div>
+          {heavyFx && (
+            <div className="absolute inset-x-0 top-0 h-[120%] opacity-60">
+              <Aurora colorStops={AURORA_STOPS} amplitude={1.1} blend={0.55} speed={0.8} />
+            </div>
+          )}
           <div className="absolute inset-0 bg-grid opacity-50" />
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[44rem] h-[44rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
           <div className="absolute top-24 -left-24 w-[30rem] h-[30rem] rounded-full bg-violet-600/15 blur-[130px] animate-aurora" style={{ animationDelay: '5s' }} />
@@ -154,7 +303,7 @@ const Home = () => {
                 NEW
               </span>
               <p className="flex items-center gap-2 text-gray-200 text-xs font-medium tracking-wide">
-                <span>Start your 30-day free trial</span>
+                <span>Start free — no credit card needed</span>
                 <ArrowRightIcon className="size-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </p>
             </motion.button>
@@ -175,54 +324,7 @@ const Home = () => {
               Describe your idea and watch our AI design, build and publish a beautiful, responsive website — no code required.
             </motion.p>
             {}
-            <motion.form
-              variants={fadeUp}
-              onSubmit={onSubmitHandler}
-              whileHover={{ scale: 1.005 }}
-              className="relative w-full bg-[#16161c]/40 backdrop-blur-2xl border border-white/10 rounded-[24px] p-5 mt-10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all duration-300 group"
-            >
-              <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className="bg-transparent outline-none text-gray-100 resize-none w-full placeholder:text-gray-500 text-[15px] relative z-10 leading-relaxed"
-                rows={3}
-                placeholder="Describe the website you want — e.g. a sleek landing page for a coffee brand with a menu and contact section"
-                required
-              />
-              <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5 mt-2 relative z-10">
-                <span className="hidden sm:flex items-center gap-2 text-xs text-gray-400 font-semibold tracking-wider uppercase">
-                  <SparklesIcon className="size-4 text-indigo-400" /> Powered by AI
-                </span>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:from-[#6d28d9] hover:to-[#7c3aed] disabled:opacity-70 transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] border border-white/10"
-                  disabled={loading}
-                >
-                  {!loading ? (
-                    <>Create with AI <ArrowRightIcon className="size-4" /></>
-                  ) : (
-                    <>Creating <Loader2Icon className="animate-spin size-4 text-white" /></>
-                  )}
-                </motion.button>
-              </div>
-            </motion.form>
-
-            {}
-            <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 mt-8 w-full max-w-[500px]">
-              <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Try:</span>
-              {examplePrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setInput(prompt)}
-                  className="text-xs text-gray-300 bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:border-indigo-400/60 hover:bg-white/10 hover:text-white hover:shadow-[0_0_15px_rgba(124,58,237,0.2)] transition-all duration-300"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </motion.div>
+            <PromptForm />
           </motion.div>
 
           {}
@@ -255,24 +357,32 @@ const Home = () => {
             </svg>
 
             {}
-            <div 
-              className="absolute -inset-[120px] z-0" 
-              style={{ 
-                maskImage: 'url(#galaxy-mask)', 
-                WebkitMaskImage: 'url(#galaxy-mask)' 
-              }}
-            >
-              <SparklesCore
-                background="transparent"
-                minSize={0.8}
-                maxSize={4}
-                particleDensity={500}
-                className="w-full h-full"
-                particleColor={["#ffffff", "#e2cbff", "#c084fc", "#fcd34d"]}
-              />
-            </div>
+            {heavyFx && (
+              <div
+                className="absolute -inset-[120px] z-0"
+                style={{
+                  maskImage: 'url(#galaxy-mask)',
+                  WebkitMaskImage: 'url(#galaxy-mask)'
+                }}
+              >
+                <SparklesCore
+                  background="transparent"
+                  minSize={0.8}
+                  maxSize={4}
+                  particleDensity={180}
+                  className="w-full h-full"
+                  particleColor={SPARKLE_COLORS}
+                />
+              </div>
+            )}
             <div className="absolute -inset-6 bg-[#7c3aed]/10 blur-[120px] -z-10" />
-            <SplineScene scene={HERO_SPLINE} className="absolute inset-0 h-full w-full z-10" />
+            {showSpline ? (
+              <SplineScene scene={HERO_SPLINE} lazyMount className="absolute inset-0 h-full w-full z-10" />
+            ) : (
+              <div className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
+                <div className="w-3/4 aspect-square rounded-full bg-gradient-to-br from-indigo-500/40 via-violet-500/30 to-fuchsia-500/20 blur-2xl animate-aurora" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -365,7 +475,7 @@ const Home = () => {
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-gray-500">
               <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> No credit card required</span>
               <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> Free starter credits</span>
-              <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> Cancel anytime</span>
+              <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> Export your code anytime</span>
             </div>
           </div>
         </div>

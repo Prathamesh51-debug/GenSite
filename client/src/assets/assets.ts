@@ -1,8 +1,4 @@
-import logo from './logo.svg';
-
-export const assets = {
-    logo,
-};
+export const assets = {};
 
 export const appPlans = [
         {
@@ -235,6 +231,19 @@ export const iframeScript = `
 
                 if (updates.styles) {
                 Object.assign(selectedElement.style, updates.styles);
+                }
+            } else if (event.data.type === 'REPLACE_ELEMENT' && selectedElement) {
+                // "Apply with AI" returns the whole element re-written. Swap the
+                // selected node for the new markup. Without this branch the edit was
+                // silently dropped (element never changed, credits still spent).
+                var __wrap = document.createElement('div');
+                __wrap.innerHTML = event.data.html || '';
+                var __new = __wrap.firstElementChild;
+                if (__new) {
+                    __new.classList.remove('ai-selected-element');
+                    __new.removeAttribute('data-ai-selected');
+                    selectedElement.replaceWith(__new);
+                    selectedElement = null;
                 }
             } else if (event.data.type === 'CLEAR_SELECTION_REQUEST') {
                 clearSelected();

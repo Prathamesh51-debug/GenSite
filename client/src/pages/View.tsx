@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom"
 import { Loader2Icon } from "lucide-react";
-import ProjectPreview from "../components/ProjectPreview";
-import type { Project } from "../types";
-import api from "@/configs/axios";
+import ProjectPreview from "@/features/editor/ProjectPreview";
+import type { Project } from "@/types";
+import api from "@/shared/api/axios";
 import { toast } from "sonner";
 
 
 const View = () => {
   const { projectId } = useParams();
   const [code, setCode] = useState('')
+  const [files, setFiles] = useState<Record<string, string> | null>(null)
   const [loading, setLoading] = useState(true)
 
  
@@ -19,6 +20,7 @@ const View = () => {
       try {
         const { data } =await api.get(`api/project/published/${projectId}`)
         setCode(data.code)
+        setFiles(data.files ?? null)
         setLoading(false)
       } catch (error: any) {
         toast.error(error?.response?.data?.message || error.message)
@@ -43,7 +45,7 @@ const View = () => {
   return (
     <div className="h-screen animate-fade-in">
         {code ? (
-          <ProjectPreview project={{current_code: code} as Project }
+          <ProjectPreview project={{current_code: code, files} as Project }
           isGenerating={false} showEditorPanel={false}/>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">

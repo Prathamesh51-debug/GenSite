@@ -17,14 +17,16 @@ export interface Message {
 export interface Version {
     id: string;
     timestamp: string;
-    code: string;
+    code?: string;
+    description?: string;
 }
 
 export interface Project {
     id: string;
     name: string;
     initial_prompt: string;
-    current_code: string;
+    current_code?: string;
+    files?: Record<string, string> | null;
     createdAt: string;
     updatedAt: string;
     userId: string;
