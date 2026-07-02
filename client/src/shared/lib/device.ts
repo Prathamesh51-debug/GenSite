@@ -1,11 +1,18 @@
-// Best-effort "can this device comfortably run heavy WebGL" probe.
+// Best-effort "should we run the heavy hero WebGL" probe.
 //
-// The hero stacks a multi-MB Spline 3D scene, an Aurora shader, a particle field
-// and a fluid-cursor simulation — several live WebGL contexts at once. On cheap
-// laptops without a dedicated GPU (software rendering, low memory, few cores) that
-// lags hard. When this returns true we drop to the lightweight gradient fallbacks.
+// The hero stacks a Spline 3D scene, an Aurora shader, a particle field and a
+// fluid-cursor simulation. We now only fall back to the lightweight gradients when
+// the device *genuinely* can't/shouldn't render them: the user asked for less motion
+// or less data, or WebGL is entirely unavailable.
 //
-// Result is cached — the checks are cheap but the WebGL probe allocates a context.
+// The old RAM / CPU-core / software-renderer heuristics were dropped — they were far
+// too aggressive: navigator.deviceMemory is capped at 8 and commonly *reports* 4 on
+// perfectly capable laptops, hardwareConcurrency <= 4 catches plenty of real
+// machines, and the software-renderer check killed all effects whenever a browser
+// had hardware acceleration disabled. Net effect: effects vanished on hardware that
+// runs them fine.
+//
+// Result is cached — the WebGL probe allocates a context.
 let cached: boolean | null = null;
 
 export const isLowPowerDevice = (): boolean => {
@@ -14,28 +21,17 @@ export const isLowPowerDevice = (): boolean => {
     return (cached = false);
   }
 
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-    connection?: { saveData?: boolean };
-  };
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
 
-  // Explicit user/OS signals win outright.
+  // Explicit user/OS signals win outright (accessibility + data saving).
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return (cached = true);
   if (nav.connection?.saveData) return (cached = true);
 
-  // Low RAM / few logical cores are strong low-end signals (Chromium exposes these).
-  if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4) return (cached = true);
-  if (typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4) return (cached = true);
-
-  // Software / fallback GPU renderer → no real hardware acceleration.
+  // Only bail if WebGL is completely unavailable — then the effects can't render.
   try {
-    const gl = document.createElement('canvas').getContext('webgl') as WebGLRenderingContext | null;
+    const gl = document.createElement('canvas').getContext('webgl')
+      || document.createElement('canvas').getContext('experimental-webgl');
     if (!gl) return (cached = true);
-    const ext = gl.getExtension('WEBGL_debug_renderer_info');
-    const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
-    if (/swiftshader|software|llvmpipe|microsoft basic render|paravirtual/i.test(renderer)) {
-      return (cached = true);
-    }
   } catch {
     return (cached = true);
   }
