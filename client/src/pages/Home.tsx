@@ -276,8 +276,58 @@ const Home = () => {
         </div>
 
         {}
-        <div className="relative grid lg:grid-cols-[1.1fr_1fr] lg:items-center gap-6 lg:gap-10 w-full max-w-6xl mx-auto mt-12 md:mt-20">
-          <motion.div className="flex flex-col items-center text-center w-full lg:max-w-xl z-10 mx-auto" variants={container} initial="hidden" animate="show">
+        <div className="relative flex flex-col items-center w-full max-w-3xl mx-auto mt-12 md:mt-20">
+          {}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[560px] aspect-[4/3] -z-0">
+            {}
+            <svg width="0" height="0" className="absolute pointer-events-none">
+              <defs>
+                <filter id="galaxy-blur" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="0.08" />
+                </filter>
+                <mask id="galaxy-mask" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox">
+                  {}
+                  <path
+                    d="M 0.05 0.85 C 0.4 1.1, 0.85 0.8, 0.95 0.05"
+                    stroke="white"
+                    strokeWidth="0.25"
+                    fill="none"
+                    strokeLinecap="round"
+                    filter="url(#galaxy-blur)"
+                  />
+                  {}
+                  <circle cx="0.7" cy="0.5" r="0.25" fill="white" filter="url(#galaxy-blur)" />
+                  {}
+                  <circle cx="0.2" cy="0.75" r="0.15" fill="white" filter="url(#galaxy-blur)" />
+                  {}
+                  <circle cx="0.85" cy="0.2" r="0.2" fill="white" filter="url(#galaxy-blur)" />
+                </mask>
+              </defs>
+            </svg>
+
+            {}
+            {heavyFx && (
+              <div
+                className="absolute -inset-[120px] z-0"
+                style={{
+                  maskImage: 'url(#galaxy-mask)',
+                  WebkitMaskImage: 'url(#galaxy-mask)'
+                }}
+              >
+                <SparklesCore
+                  background="transparent"
+                  minSize={0.8}
+                  maxSize={4}
+                  particleDensity={80}
+                  className="w-full h-full"
+                  particleColor={SPARKLE_COLORS}
+                />
+              </div>
+            )}
+            <div className="absolute -inset-6 bg-[#7c3aed]/10 blur-[120px]" />
+          </div>
+
+          <motion.div className="flex flex-col items-center text-center w-full max-w-2xl z-10 mx-auto" variants={container} initial="hidden" animate="show">
             {}
             <motion.button
               variants={fadeUp}
@@ -312,60 +362,6 @@ const Home = () => {
             {}
             <PromptForm />
           </motion.div>
-
-          {}
-          {}
-          <div className="relative mt-8 mx-auto w-full max-w-[420px] h-[320px] lg:mt-0 lg:max-w-none lg:h-auto lg:aspect-[4/3] lg:justify-self-end">
-            {}
-            <svg width="0" height="0" className="absolute pointer-events-none">
-              <defs>
-                <filter id="galaxy-blur" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="0.08" />
-                </filter>
-                <mask id="galaxy-mask" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox">
-                  {}
-                  <path 
-                    d="M 0.05 0.85 C 0.4 1.1, 0.85 0.8, 0.95 0.05" 
-                    stroke="white" 
-                    strokeWidth="0.25" 
-                    fill="none" 
-                    strokeLinecap="round"
-                    filter="url(#galaxy-blur)"
-                  />
-                  {}
-                  <circle cx="0.7" cy="0.5" r="0.25" fill="white" filter="url(#galaxy-blur)" />
-                  {}
-                  <circle cx="0.2" cy="0.75" r="0.15" fill="white" filter="url(#galaxy-blur)" />
-                  {}
-                  <circle cx="0.85" cy="0.2" r="0.2" fill="white" filter="url(#galaxy-blur)" />
-                </mask>
-              </defs>
-            </svg>
-
-            {}
-            {heavyFx && (
-              <div
-                className="absolute -inset-[120px] z-0"
-                style={{
-                  maskImage: 'url(#galaxy-mask)',
-                  WebkitMaskImage: 'url(#galaxy-mask)'
-                }}
-              >
-                <SparklesCore
-                  background="transparent"
-                  minSize={0.8}
-                  maxSize={4}
-                  particleDensity={180}
-                  className="w-full h-full"
-                  particleColor={SPARKLE_COLORS}
-                />
-              </div>
-            )}
-            <div className="absolute -inset-6 bg-[#7c3aed]/10 blur-[120px] -z-10" />
-            <div className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
-              <div className="w-3/4 aspect-square rounded-full bg-gradient-to-br from-indigo-500/40 via-violet-500/30 to-fuchsia-500/20 blur-2xl animate-aurora" />
-            </div>
-          </div>
         </div>
 
         {}
