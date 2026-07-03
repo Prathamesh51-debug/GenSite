@@ -11,13 +11,10 @@ import { toast } from 'sonner';
 import { motion, useMotionTemplate, useMotionValue, useReducedMotion, type Variants } from 'framer-motion';
 import gsap from 'gsap';
 import Footer from '@/shared/components/Footer';
-import SplineScene from '@/shared/components/SplineScene';
 import { SparklesCore } from '@/shared/ui/sparkles';
 import Aurora from '@/shared/ui/reactbits/Aurora';
 import Seo from '@/shared/components/Seo';
 import { isLowPowerDevice } from '@/shared/lib/device';
-
-const HERO_SPLINE = 'https://prod.spline.design/NEmNpfFUwA5GVzzA/scene.splinecode';
 
 const examplePrompts = [
   'A sleek portfolio for a photographer',
@@ -220,17 +217,6 @@ const Home = () => {
   // once and fall back to lightweight gradients for the whole hero.
   const [lowPower] = useState(isLowPowerDevice);
   const heavyFx = !reduceMotion && !lowPower;
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  // Don't pull the multi-MB Spline 3D runtime/scene on mobile, low-power devices, or
-  // for reduced-motion users — they get a lightweight gradient glow instead.
-  const showSpline = isDesktop && heavyFx;
 
   const mx = useMotionValue(-400);
   const my = useMotionValue(-400);
@@ -376,13 +362,9 @@ const Home = () => {
               </div>
             )}
             <div className="absolute -inset-6 bg-[#7c3aed]/10 blur-[120px] -z-10" />
-            {showSpline ? (
-              <SplineScene scene={HERO_SPLINE} lazyMount className="absolute inset-0 h-full w-full z-10" />
-            ) : (
-              <div className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
-                <div className="w-3/4 aspect-square rounded-full bg-gradient-to-br from-indigo-500/40 via-violet-500/30 to-fuchsia-500/20 blur-2xl animate-aurora" />
-              </div>
-            )}
+            <div className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
+              <div className="w-3/4 aspect-square rounded-full bg-gradient-to-br from-indigo-500/40 via-violet-500/30 to-fuchsia-500/20 blur-2xl animate-aurora" />
+            </div>
           </div>
         </div>
 
