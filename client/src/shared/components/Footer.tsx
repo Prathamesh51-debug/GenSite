@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { TwitterIcon, GithubIcon, LinkedinIcon, SparklesIcon } from 'lucide-react';
 
-const REPO = 'https://github.com/Prathamesh51-debug/AiWebsiteBuilder';
+const REPO = 'https://github.com/Prathamesh51-debug/GenSite';
 
 type FooterLink = { label: string; to: string } | { label: string; href: string };
 

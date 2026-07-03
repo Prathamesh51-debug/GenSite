@@ -145,8 +145,8 @@ The interesting parts are the trade-offs, not the happy path:
 
 ### 1. Clone
 ```bash
-git clone https://github.com/Prathamesh51-debug/AiWebsiteBuilder.git
-cd AiWebsiteBuilder
+git clone https://github.com/Prathamesh51-debug/GenSite.git
+cd GenSite
 ```
 
 ### 2. Backend
