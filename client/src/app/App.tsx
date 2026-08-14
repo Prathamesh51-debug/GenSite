@@ -1,18 +1,12 @@
 
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { Loader2Icon } from 'lucide-react';
-import { MotionConfig, useReducedMotion } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MotionConfig } from 'framer-motion';
 import Lenis from 'lenis';
 import Navbar from '@/shared/components/Navbar';
-import SplashCursor from '@/shared/ui/reactbits/SplashCursor';
 import ErrorBoundary from '@/shared/components/ErrorBoundary';
-import { isLowPowerDevice } from '@/shared/lib/device';
 import { Toaster } from 'sonner'
-
-gsap.registerPlugin(ScrollTrigger);
 
 const Home = lazy(() => import('@/pages/Home'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
@@ -37,21 +31,6 @@ const RouteFallback = () => (
 const App  = () => {
 
   const { pathname } = useLocation()
-  const reduceMotion = useReducedMotion()
-
-  // The fluid-cursor sim is a desktop pointer effect — pointless and battery-
-  // draining on touch devices, and unwanted under reduced-motion.
-  const [finePointer, setFinePointer] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(pointer: fine)')
-    const update = () => setFinePointer(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-  // The fluid-cursor sim is a continuous WebGL simulation — skip it entirely on
-  // low-power devices (no dedicated GPU / low memory), where it's the worst offender.
-  const showCursorFx = finePointer && !reduceMotion && !isLowPowerDevice()
 
   const hideNavbar=pathname.startsWith('/projects/') && pathname !== '/projects'
                    || pathname.startsWith('/view/')
@@ -71,14 +50,18 @@ const App  = () => {
       touchMultiplier: 1.5,
     });
 
-    lenis.on('scroll', ScrollTrigger.update);
-    const onTick = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.add(onTick);
-    gsap.ticker.lagSmoothing(0);
-    ScrollTrigger.refresh();
+    // Lenis used to be driven by GSAP's ticker purely so ScrollTrigger stayed in
+    // sync. With GSAP gone, it drives itself off rAF — note native rAF already
+    // reports milliseconds, so there's no *1000 here as there was for gsap.ticker
+    // (whose time is in seconds). Scroll reveals are framer-motion's `whileInView`
+    // now, which reads real scroll position and needs no sync step.
+    let frame = requestAnimationFrame(function raf(time: number) {
+      lenis.raf(time);
+      frame = requestAnimationFrame(raf);
+    });
 
     return () => {
-      gsap.ticker.remove(onTick);
+      cancelAnimationFrame(frame);
       lenis.destroy();
     };
   }, []);
@@ -87,12 +70,6 @@ const App  = () => {
     <MotionConfig reducedMotion="user">
     <div>
     <Toaster position="top-center" richColors closeButton theme="dark" />
-      {}
-      {showCursorFx && (
-        <div className="opacity-40">
-          <SplashCursor DENSITY_DISSIPATION={5} SPLAT_RADIUS={0.15} SPLAT_FORCE={4500} />
-        </div>
-      )}
       <ErrorBoundary>
       {!hideNavbar && <Navbar />}
       <Suspense fallback={<RouteFallback />}>

@@ -14,11 +14,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Split the heavy visual libs into their own cached chunks (they're mostly
-        // lazy-loaded and not needed on mobile).
+        // Keep the animation runtime in its own long-lived cache chunk. The old
+        // `particles` chunk (tsparticles + ogl) is gone with the WebGL hero, and
+        // `motion`/`gsap` went with it — framer-motion is the only animation
+        // library left, and lenis rides along since it loads on every route.
         manualChunks: {
-          motion: ['framer-motion', 'motion', 'gsap', 'lenis'],
-          particles: ['@tsparticles/engine', '@tsparticles/react', '@tsparticles/slim', 'ogl'],
+          motion: ['framer-motion', 'lenis'],
         },
       },
     },

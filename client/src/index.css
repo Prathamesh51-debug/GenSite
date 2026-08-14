@@ -26,8 +26,8 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-stopped { overflow: hidden; }
 
 /* Respect users who ask for less motion: neutralise CSS animations/transitions
-   globally. WebGL/canvas decorations (Aurora, particles, cursor) are gated
-   separately in JS since they don't go through CSS. */
+   globally. Motion driven by JS (the hero's page deck) honours the same preference
+   via framer-motion's <MotionConfig reducedMotion="user">. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -257,6 +257,13 @@ html.lenis, html.lenis body { height: auto; }
 .font-display {
    font-family: "Space Grotesk", "Outfit", sans-serif;
    letter-spacing: -0.03em;
+}
+
+/* Declared here rather than using Tailwind's `font-mono`: the `*` rule above is
+   unlayered, so it outranks anything in @layer utilities. Same reason .font-display
+   exists. */
+.font-code {
+   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 
