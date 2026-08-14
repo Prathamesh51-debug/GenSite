@@ -1,5 +1,5 @@
-import LegalLayout, { LegalSection } from '@/shared/components/LegalLayout'
-import Seo from '@/shared/components/Seo'
+import LegalLayout, { LegalSection } from '@/shared/components/layout/LegalLayout'
+import Seo from '@/shared/components/layout/Seo'
 
 const Privacy = () => (
   <>

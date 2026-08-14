@@ -3,7 +3,7 @@ import './index.css'
 import App from '@/app/App'
 import { BrowserRouter } from 'react-router-dom'
 import { Providers } from '@/app/providers'
-import { ConfirmProvider } from '@/shared/components/ConfirmDialog'
+import { ConfirmProvider } from '@/shared/components/ui/ConfirmDialog'
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>

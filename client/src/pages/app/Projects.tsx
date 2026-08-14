@@ -16,14 +16,14 @@ import {
   TabletIcon,
 } from 'lucide-react'
 
-import Sidebar from '@/features/editor/Sidebar'
-import ProjectPreview from '@/features/editor/ProjectPreview'
-import type { ProjectPreviewRef } from '@/features/editor/ProjectPreview'
+import Sidebar from '@/features/editor/components/Sidebar'
+import ProjectPreview from '@/features/editor/components/ProjectPreview'
+import type { ProjectPreviewRef } from '@/features/editor/components/ProjectPreview'
 import api from '@/shared/api/axios'
 import { toast } from 'sonner'
 import { authClient } from '@/shared/api/auth-client'
-import { emitCreditsChanged } from '@/features/billing/credits-bus'
-import { useConfirm } from '@/shared/components/ConfirmDialog'
+import { emitCreditsChanged } from '@/features/billing/lib/credits-bus'
+import { useConfirm } from '@/shared/components/ui/ConfirmDialog'
 
 
 const Projects = () => {

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { CompassIcon } from 'lucide-react'
-import Seo from '@/shared/components/Seo'
+import Seo from '@/shared/components/layout/Seo'
 
 const NotFound = () => {
   const navigate = useNavigate()

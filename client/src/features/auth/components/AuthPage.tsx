@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { AuthView } from "@daveyplate/better-auth-ui"
 import { toast } from "sonner"
-import AuthBot, { type BotMode } from "@/features/auth/AuthBot"
+import AuthBot, { type BotMode } from '@/features/auth/components/AuthBot'
 import { authClient } from "@/shared/api/auth-client"
 
 const copyMap: Record<string, { h: string; s: string }> = {

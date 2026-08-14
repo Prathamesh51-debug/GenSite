@@ -4,23 +4,23 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { Loader2Icon } from 'lucide-react';
 import { MotionConfig } from 'framer-motion';
 import Lenis from 'lenis';
-import Navbar from '@/shared/components/Navbar';
-import ErrorBoundary from '@/shared/components/ErrorBoundary';
+import Navbar from '@/shared/components/layout/Navbar';
+import ErrorBoundary from '@/shared/components/layout/ErrorBoundary';
 import { Toaster } from 'sonner'
 
-const Home = lazy(() => import('@/pages/Home'));
-const Pricing = lazy(() => import('@/pages/Pricing'));
-const Projects = lazy(() => import('@/pages/Projects'));
-const MyProjects = lazy(() => import('@/pages/MyProjects'));
-const Preview = lazy(() => import('@/pages/Preview'));
-const Community = lazy(() => import('@/pages/Community'));
-const View = lazy(() => import('@/pages/View'));
-const AuthPage = lazy(() => import('@/features/auth/AuthPage'));
-const Settings = lazy(() => import('@/pages/Settings'));
-const Loading = lazy(() => import('@/pages/Loading'));
+const Home = lazy(() => import('@/pages/marketing/Home'));
+const Pricing = lazy(() => import('@/pages/marketing/Pricing'));
+const Projects = lazy(() => import('@/pages/app/Projects'));
+const MyProjects = lazy(() => import('@/pages/app/MyProjects'));
+const Preview = lazy(() => import('@/pages/app/Preview'));
+const Community = lazy(() => import('@/pages/app/Community'));
+const View = lazy(() => import('@/pages/app/View'));
+const AuthPage = lazy(() => import('@/features/auth/components/AuthPage'));
+const Settings = lazy(() => import('@/pages/app/Settings'));
+const Loading = lazy(() => import('@/pages/app/Loading'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
-const Terms = lazy(() => import('@/pages/Terms'));
-const Privacy = lazy(() => import('@/pages/Privacy'));
+const Terms = lazy(() => import('@/pages/legal/Terms'));
+const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 
 const RouteFallback = () => (
   <div className="flex items-center justify-center min-h-[60vh]" role="status" aria-label="Loading page">

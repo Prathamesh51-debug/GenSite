@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Project } from '@/types'
 import { PlusIcon, TrashIcon, FolderIcon, CopyPlusIcon, Loader2Icon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import Footer from '@/shared/components/Footer'
-import Seo from '@/shared/components/Seo'
+import Footer from '@/shared/components/layout/Footer'
+import Seo from '@/shared/components/layout/Seo'
 import api from '@/shared/api/axios'
 import { toast } from 'sonner'
 import { authClient } from '@/shared/api/auth-client'
-import { useConfirm } from '@/shared/components/ConfirmDialog'
+import { useConfirm } from '@/shared/components/ui/ConfirmDialog'
 
 // Lazy thumbnail: only fetches the project's HTML when the card scrolls near the
 // viewport, then renders it in a SCRIPTS-ONLY sandbox (no allow-same-origin, even

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Project } from "@/types";
 import { ExternalLinkIcon, LayoutGridIcon, Loader2Icon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import Footer from "@/shared/components/Footer";
-import Seo from "@/shared/components/Seo";
+import Footer from '@/shared/components/layout/Footer';
+import Seo from '@/shared/components/layout/Seo';
 import api from "@/shared/api/axios";
 import { toast } from "sonner";
 

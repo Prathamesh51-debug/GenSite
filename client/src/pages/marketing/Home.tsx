@@ -1,6 +1,6 @@
 import api from '@/shared/api/axios';
 import { authClient } from '@/shared/api/auth-client';
-import { useCredits } from '@/features/billing/use-credits';
+import { useCredits } from '@/features/billing/hooks/use-credits';
 import {
   ArrowRightIcon, Loader2Icon, SparklesIcon, ZapIcon, PaletteIcon, RocketIcon,
   MessageSquareIcon, GlobeIcon, CodeIcon, ShieldCheckIcon, CheckIcon,
@@ -12,8 +12,8 @@ import {
   motion, useMotionValue, useReducedMotion, useScroll, useTransform,
   type MotionValue, type Variants,
 } from 'framer-motion';
-import Footer from '@/shared/components/Footer';
-import Seo from '@/shared/components/Seo';
+import Footer from '@/shared/components/layout/Footer';
+import Seo from '@/shared/components/layout/Seo';
 
 const examplePrompts = [
   'A sleek portfolio for a photographer',

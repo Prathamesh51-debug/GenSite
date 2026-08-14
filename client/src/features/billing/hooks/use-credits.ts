@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '@/shared/api/axios'
 import { authClient } from '@/shared/api/auth-client'
-import { onCreditsChanged } from './credits-bus'
+import { onCreditsChanged } from '@/features/billing/lib/credits-bus'
 
 // Live credit balance for the signed-in user. Returns null until loaded (or when
 // signed out). Re-fetches whenever something emits a credits change, so any UI

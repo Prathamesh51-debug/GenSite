@@ -4,9 +4,9 @@ import { BotIcon, EyeIcon, Loader2Icon, SendIcon, UserIcon } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import api from '@/shared/api/axios';
 import { toast } from 'sonner';
-import { emitCreditsChanged } from '@/features/billing/credits-bus';
-import { useCredits } from '@/features/billing/use-credits';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
+import { emitCreditsChanged } from '@/features/billing/lib/credits-bus';
+import { useCredits } from '@/features/billing/hooks/use-credits';
+import { useConfirm } from '@/shared/components/ui/ConfirmDialog';
 
 interface SidebarProps {
     isMenuOpen: boolean;

@@ -1,6 +1,6 @@
 import React from 'react'
-import Footer from '@/shared/components/Footer';
-import Seo from '@/shared/components/Seo';
+import Footer from '@/shared/components/layout/Footer';
+import Seo from '@/shared/components/layout/Seo';
 import { authClient } from '@/shared/api/auth-client';
 import { toast } from 'sonner';
 import api from '@/shared/api/axios';

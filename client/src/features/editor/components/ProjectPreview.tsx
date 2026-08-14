@@ -2,10 +2,10 @@ import  { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'r
 import type { Project } from '@/types';
 import { iframeScript } from '@/assets/assets';
 import EditorPanel from './EditorPanel';
-import LoaderSteps from '@/shared/components/LoaderSteps';
+import LoaderSteps from '@/shared/components/ui/LoaderSteps';
 import api from '@/shared/api/axios';
 import { toast } from 'sonner';
-import { emitCreditsChanged } from '@/features/billing/credits-bus';
+import { emitCreditsChanged } from '@/features/billing/lib/credits-bus';
 import { SparklesIcon } from 'lucide-react';
 
 // Injected into every previewed page so clicks on internal *.html links switch the

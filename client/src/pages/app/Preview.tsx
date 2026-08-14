@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2Icon } from "lucide-react";
-import ProjectPreview from "@/features/editor/ProjectPreview";
+import ProjectPreview from '@/features/editor/components/ProjectPreview';
 import type { Project } from "@/types";
 import api from "@/shared/api/axios";
 import { toast } from "sonner";

@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authClient } from '@/shared/api/auth-client';
 import { UserButton } from '@daveyplate/better-auth-ui'
 import { MenuIcon, XIcon } from 'lucide-react';
-import { useCredits } from '@/features/billing/use-credits';
+import { useCredits } from '@/features/billing/hooks/use-credits';
 
 const navLinks = [
   { label: 'Home', to: '/' },
