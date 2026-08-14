@@ -66,8 +66,8 @@ export default function AuthPage() {
       {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[38rem] h-[38rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
-        <div className="absolute bottom-0 right-0 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px] animate-aurora" style={{ animationDelay: "5s" }} />
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[38rem] h-[38rem] rounded-full bg-indigo-600/20 blur-[130px]" />
+        <div className="absolute bottom-0 right-0 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px]" />
       </div>
 
       <Link to="/" className="flex items-center gap-2 mb-8 animate-fade-in-down hover:scale-105 smooth-transition">

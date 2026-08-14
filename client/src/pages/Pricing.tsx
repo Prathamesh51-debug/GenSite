@@ -62,8 +62,8 @@ const Pricing = () => {
       {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/20 blur-[130px] animate-aurora" />
-        <div className="absolute top-40 -right-20 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px] animate-aurora" style={{ animationDelay: '6s' }} />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/20 blur-[130px]" />
+        <div className="absolute top-40 -right-20 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px]" />
       </div>
 
       <div className="w-full max-w-6xl mx-auto px-4 min-h-[80vh]">

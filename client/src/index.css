@@ -242,14 +242,10 @@ html.lenis, html.lenis body { height: auto; }
 
 
 
-@keyframes aurora {
-   0%, 100% { transform: translate(0, 0) scale(1); }
-   33%      { transform: translate(40px, -30px) scale(1.12); }
-   66%      { transform: translate(-30px, 25px) scale(0.94); }
-}
-.animate-aurora {
-   animation: aurora 16s ease-in-out infinite;
-}
+/* `aurora` (a drifting transform on blur-[130px] blobs) was removed: animating an
+   element that carries a large filter forces the blur to re-rasterize every frame,
+   which is what made the ambient background so expensive on integrated GPUs. The
+   blobs are still there — they just hold still now, so the blur is cached once. */
 
 
 
