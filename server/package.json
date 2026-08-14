@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "prisma generate",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc && tsc-alias",
     "start": "node dist/server.js",
-    "dev": "tsx watch server.ts",
+    "dev": "tsx watch src/server.ts",
     "test": "vitest run"
   },
   "keywords": [],
@@ -37,6 +37,7 @@
     "@types/node": "^25.0.10",
     "@types/pg": "^8.16.0",
     "prisma": "^7.3.0",
+    "tsc-alias": "^1.9.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
