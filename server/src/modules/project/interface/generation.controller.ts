@@ -3,22 +3,20 @@ import { chargeCredits, refundCredits } from '@/core/credits.js';
 import { storeHtml } from '@/platform/storage/storage.js';
 import { generateSite } from '@/generation/orchestrator/generate.js';
 import { CREDIT_COSTS } from '@/shared/config/constants.js';
+import { generationCost } from '@/generation/providers/models.js';
 import { projectRepository } from '@/modules/project/data/project.repository.js';
 import { generating, pruneVersions } from '@/modules/project/domain/project.runtime.js';
 import { generationService } from '@/modules/project/application/generation.service.js';
 
-// Stream the initial site generation over SSE so the editor renders as it builds.
-// This handler owns its own response + error framing (it can't defer to the error
-// middleware once the stream is open), so it isn't wrapped in asyncHandler.
 export const streamGeneration = async (req: Request, res: Response) => {
     const userId = req.userId!;
     const { projectId } = req.params as { projectId: string };
     let charged = false;
-    // True only if THIS request owns the in-flight slot, so an early return never
-    // evicts another live generation's controller.
+
+    let cost: number = CREDIT_COSTS.generate;
+
     let owns = false;
-    // Set once persisted, so the close handler only aborts genuinely in-flight work
-    // (close also fires on normal completion after res.end()).
+
     let finished = false;
     const abort = new AbortController();
     req.on('close', () => { if (!finished) abort.abort(); });
@@ -35,7 +33,6 @@ export const streamGeneration = async (req: Request, res: Response) => {
         const project = await projectRepository.findOwned(projectId, userId);
         if (!project) { send({ type: 'error', message: 'Project not found' }); return res.end(); }
 
-        // Already generated (e.g. a reconnect) — finish without regenerating or recharging.
         if (project.current_code) { send({ type: 'done', html: project.current_code }); return res.end(); }
 
         if (generating.has(projectId)) {
@@ -45,11 +42,11 @@ export const streamGeneration = async (req: Request, res: Response) => {
         generating.set(projectId, abort);
         owns = true;
 
-        // Authoritative charge happens HERE (not at project creation) so a failed+refunded
-        // build the user refreshes is re-charged, not re-run for free.
-        charged = await chargeCredits(userId, CREDIT_COSTS.generate);
+        cost = generationCost(project.model);
+
+        charged = await chargeCredits(userId, cost);
         if (!charged) {
-            send({ type: 'error', message: 'You need at least 5 credits to generate. Please add more.' });
+            send({ type: 'error', message: `You need at least ${cost} credits to generate. Please add more.` });
             return res.end();
         }
 
@@ -60,7 +57,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         });
 
         if (!result) {
-            if (charged) { await refundCredits(userId, CREDIT_COSTS.generate).catch(() => {}); charged = false; }
+            if (charged) { await refundCredits(userId, cost).catch(() => {}); charged = false; }
             await projectRepository.addMessage(projectId, 'assistant', "I couldn't generate your website this time and refunded your credits. Please try again, ideally with a bit more detail.");
             send({ type: 'error', message: 'Generation failed — credits refunded.' });
             return res.end();
@@ -69,7 +66,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         const { files, index } = result;
         const indexRef = await storeHtml(index, projectId);
         const pageCount = Object.keys(files).length;
-        // First successful build = no prior versions; only these count toward totalCreation.
+
         const priorVersions = await projectRepository.countVersions(projectId);
         const version = await projectRepository.createVersion({ code: indexRef, files, description: 'Initial version', projectId });
         await projectRepository.addMessage(projectId, 'assistant', `I've created your ${pageCount}-page website! You can preview it and request any changes.`);
@@ -83,7 +80,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         send({ type: 'done', html: index });
         res.end();
     } catch (error: any) {
-        if (charged) { await refundCredits(userId, CREDIT_COSTS.generate).catch(() => {}); charged = false; }
+        if (charged) { await refundCredits(userId, cost).catch(() => {}); charged = false; }
         console.error('stream error:', error?.message);
         try { send({ type: 'error', message: 'Generation failed. Please try again.' }); } catch {}
         res.end();

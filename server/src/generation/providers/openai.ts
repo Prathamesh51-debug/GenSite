@@ -4,24 +4,21 @@ import { traceGeneration } from '@/platform/observability/observability.js';
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.AI_API_KEY,
-  // Our own fallback loop handles retries; don't let the SDK double them.
+
   timeout: 150000,
   maxRetries: 0,
 });
 
-// Free models, tried in order — each is throttled independently, so a busy primary
-// falls back to the next. Override via GEN_MODELS once you add OpenRouter credits.
 export const FREE_MODELS = process.env.GEN_MODELS?.split(',').map((s) => s.trim()).filter(Boolean) ?? [
-  'openai/gpt-oss-120b:free',
-  'openai/gpt-oss-20b:free',
-  'qwen/qwen3-coder:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'openrouter/free',
 ];
 
-// Primary model for fresh generation (good at design/layout).
 export const FREE_MODEL = process.env.GEN_MODEL || FREE_MODELS[0];
 
-// Edit tasks — a coder model follows precise "change X to Y" instructions better.
-export const EDIT_MODEL = process.env.EDIT_MODEL || 'qwen/qwen3-coder:free';
+export const EDIT_MODEL = process.env.EDIT_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -35,8 +32,6 @@ const retryDelay = (attempt: number, hintSeconds?: number) => {
 
 const is429 = (err: any) => (err?.status ?? err?.code) === 429;
 
-// Chat completion with free-tier resilience: retry a model briefly on 429, then fall
-// back to the next model in FREE_MODELS. The requested model is always tried first.
 export const createChatCompletion = async (
   params: any,
   { retriesPerModel = 1, signal }: { retriesPerModel?: number; signal?: AbortSignal } = {}
@@ -56,28 +51,30 @@ export const createChatCompletion = async (
     for (let attempt = 0; attempt <= retriesPerModel; attempt++) {
       try {
         const res: any = await openai.chat.completions.create({ ...params, model }, signal ? { signal } : undefined);
-        // Some providers relay the error inside a 200 body.
+
         if (res?.error) {
           const code = res.error.code ?? res.error.status;
           lastError = new Error(res.error.message || 'AI provider error');
-          if (code === 429) { logLlm({ model, event: 'rate_limited' }); break; }
-          throw lastError;
+
+          logLlm({ model, event: code === 429 ? 'rate_limited' : 'provider_error', code });
+          break;
         }
         logLlm({ model, event: 'ok', fallback: model !== requested, tokens: res?.usage?.total_tokens ?? null });
         traceGeneration({ model, latencyMs: Date.now() - started, usage: res?.usage, success: true, requested }).catch(() => {});
         return res;
       } catch (error: any) {
         lastError = error;
-        if (is429(error)) {
+
+        if (signal?.aborted || error?.name === 'AbortError') throw error;
+
+        if (is429(error) && attempt < retriesPerModel) {
           logLlm({ model, event: 'rate_limited', attempt });
-          if (attempt < retriesPerModel) {
-            await sleep(retryDelay(attempt, Number(error?.headers?.['retry-after'])));
-            continue;
-          }
-          break; // exhausted -> next model
+          await sleep(retryDelay(attempt, Number(error?.headers?.['retry-after'])));
+          continue;
         }
-        logLlm({ model, event: 'error', message: error?.message });
-        throw error; // non-429: surface immediately
+
+        logLlm({ model, event: is429(error) ? 'rate_limited' : 'error', message: error?.message });
+        break;
       }
     }
   }

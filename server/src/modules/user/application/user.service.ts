@@ -1,7 +1,7 @@
 import { userRepository } from '@/modules/user/data/user.repository.js';
 import { NotFoundError, InsufficientCreditsError } from '@/shared/http/AppError.js';
 import { MIN_CREDITS_TO_CREATE } from '@/shared/config/constants.js';
-import { isValidModel, MODELS } from '@/generation/providers/models.js';
+import { isValidTier, TIERS } from '@/generation/providers/models.js';
 import { PLANS } from '@/core/plans.js';
 
 export const userService = {
@@ -11,8 +11,6 @@ export const userService = {
         return user.credits;
     },
 
-    // Soft balance gate for UX only — the authoritative, race-safe charge happens at
-    // generation time, not here.
     async createProject(userId: string, initialPrompt: string, model: string | null) {
         const user = await userRepository.findById(userId);
         if (!user) throw new NotFoundError('User not found');
@@ -21,7 +19,7 @@ export const userService = {
         }
         const name = initialPrompt.length > 50 ? initialPrompt.substring(0, 47) + '...' : initialPrompt;
         const project = await userRepository.createProjectWithMessage(
-            userId, name, initialPrompt, isValidModel(model) ? model : null,
+            userId, name, initialPrompt, isValidTier(model) ? model : 'free',
         );
         return project.id;
     },
@@ -42,5 +40,5 @@ export const userService = {
     },
 
     plans: () => PLANS,
-    models: () => MODELS,
+    models: () => TIERS,
 };

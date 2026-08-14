@@ -22,7 +22,6 @@ const examplePrompts = [
   'A modern store for a coffee brand',
 ];
 
-// Honest capability highlights — no fabricated usage/rating/uptime numbers.
 const stats = [
   { value: 'Multi-page', label: 'Sites from one prompt' },
   { value: 'Live', label: 'Preview as it builds' },
@@ -57,10 +56,6 @@ const container: Variants = {
   show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
 };
 
-// Scroll reveals. These replace the old GSAP ScrollTrigger pass — framer-motion is
-// already a dependency, so the effect costs nothing extra in the bundle, and
-// `once: true` means each element animates a single time instead of scrubbing
-// against every scroll event.
 const Reveal = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <motion.div className={className} variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }}>
     {children}
@@ -73,12 +68,6 @@ const RevealGroup = ({ children, className = '' }: { children: React.ReactNode; 
   </motion.div>
 );
 
-// The page deck: the hero's one visual. Each card carries its own open-position
-// offset; a single shared scroll value scales all of them, so five cards are driven
-// by one MotionValue rather than five scroll subscriptions.
-// `outer` cards sit at the widest spread, so they're dropped below `sm` — at phone
-// widths the full five-card fan can't fit without shrinking the deck until the pages
-// are unreadable. Three cards still say "more than one page", which is the point.
 const PAGES = [
   { file: 'gallery.html', x: -292, y: 38, r: -17, z: 10, accent: 'from-fuchsia-400/30', outer: true },
   { file: 'menu.html', x: -152, y: 14, r: -9, z: 20, accent: 'from-violet-400/30', outer: false },
@@ -88,7 +77,7 @@ const PAGES = [
 ] as const;
 
 const FanCard = ({ page, f }: { page: (typeof PAGES)[number]; f: MotionValue<number> }) => {
-  // Only `transform` — never a property that would touch layout or paint.
+
   const x = useTransform(f, (v) => page.x * v);
   const y = useTransform(f, (v) => page.y * v);
   const rotate = useTransform(f, (v) => page.r * v);
@@ -116,20 +105,15 @@ const FanCard = ({ page, f }: { page: (typeof PAGES)[number]; f: MotionValue<num
 const PageFan = () => {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  // 0 while the deck is still below the fold, 1 once it reaches the middle of the
-  // viewport — so it opens as it arrives rather than at an arbitrary scroll depth.
+
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
-  // Under reduced motion the deck renders already open: a closed stack would hide
-  // four of the five pages, which is the whole point of the visual.
+
   const open = useMotionValue(1);
   const f = reduceMotion ? open : scrollYProgress;
 
   return (
     <div ref={ref} className="relative mx-auto mt-6 h-[170px] w-full max-w-[640px] sm:h-[220px] md:h-[260px] lg:h-[300px]" aria-hidden="true">
-      {/* The deck is authored at full size and scaled to fit. The open fan reaches
-          ±418px from centre (±292 offset, +95 half-card, +31 of rotation overhang),
-          so full scale only clears the viewport from `lg` up — at `md` the available
-          half-width is 384px and scale-100 would overflow the page. */}
+      {}
       <div className="absolute inset-0 origin-top scale-[0.58] sm:scale-[0.72] md:scale-[0.85] lg:scale-100">
         {PAGES.map((page) => (
           <FanCard key={page.file} page={page} f={f} />
@@ -139,43 +123,39 @@ const PageFan = () => {
   );
 };
 
-// The prompt box owns its own `input`/`loading` state. Keeping it OUT of <Home>
-// means typing only re-renders this small form, not the rest of the hero.
 const PromptForm = () => {
   const { data: session } = authClient.useSession();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const credits = useCredits();
-  const insufficient = credits !== null && credits < 5;
-  // A signed-in user whose balance is still loading shouldn't be able to fire a
-  // create that the server will 403. Signed-OUT users keep an enabled button so
-  // the click still surfaces the "please sign in" prompt.
-  const creditsPending = !!session?.user && credits === null;
 
-  const [models, setModels] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState('auto');
+  const [tiers, setTiers] = useState<any[]>([]);
+  const [tier, setTier] = useState<'free' | 'premium'>('free');
   useEffect(() => {
-    api.get('/api/user/models').then(({ data }) => setModels(data.models)).catch(() => {});
+    api.get('/api/user/models').then(({ data }) => setTiers(data.models)).catch(() => {});
   }, []);
-  const activeModel = models.find((m) => m.id === selectedModel);
+  const activeTier = tiers.find((t) => t.id === tier);
+  const cost = activeTier?.credits ?? (tier === 'premium' ? 15 : 5);
+
+  const insufficient = credits !== null && credits < cost;
+
+  const creditsPending = !!session?.user && credits === null;
 
   const onSubmitHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return toast.error('Please sign in to create a project');
     if (!input.trim()) return toast.error('Please enter a message');
-    if (insufficient) { toast.error('You need at least 5 credits to create a project.'); return navigate('/pricing'); }
+    if (insufficient) { toast.error(`You need at least ${cost} credits to create a project.`); return navigate('/pricing'); }
 
     setLoading(true);
-    // Cold-start hint: the API on the free tier can take 30–60s to wake up. Use a
-    // stable id so we can dismiss it the moment the request resolves.
+
     const slowTimer = window.setTimeout(() => {
       toast('Waking the server… the first request can take up to a minute.', { id: 'cold-start', duration: 15000 });
     }, 5000);
     try {
-      const { data } = await api.post('/api/user/project', { initial_prompt: input, model: selectedModel });
-      // autostart tells the editor THIS is a fresh creation, so it may auto-generate
-      // (reopening an ungenerated project later won't silently re-charge).
+      const { data } = await api.post('/api/user/project', { initial_prompt: input, model: tier });
+
       navigate(`/projects/${data.projectId}`, { state: { autostart: true } });
     } catch (error: any) {
       setLoading(false);
@@ -198,8 +178,7 @@ const PromptForm = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            // Ignore Enter while an IME composition is active (CJK input), else it
-            // submits mid-word.
+
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               if (input.trim() && !loading && !insufficient && !creditsPending) e.currentTarget.form?.requestSubmit();
@@ -214,25 +193,26 @@ const PromptForm = () => {
         />
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5 mt-2 relative z-10">
           <div className="flex items-center gap-2 min-w-0">
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={loading}
-              aria-label="Generation model"
-              title={activeModel?.description}
-              className="max-w-[9.5rem] sm:max-w-[15rem] truncate bg-white/5 border border-white/10 rounded-lg text-xs text-gray-200 px-2 py-1.5 outline-none focus:border-indigo-400/50 cursor-pointer disabled:opacity-60"
-            >
-              {models.length === 0 && <option value="auto">Auto — Smart mix</option>}
-              {models.map((m) => (
-                <option key={m.id} value={m.id} className="bg-zinc-900 text-gray-100">{m.label}</option>
+            <div role="group" aria-label="Quality tier" className="inline-flex items-center rounded-lg bg-white/5 border border-white/10 p-0.5">
+              {(['free', 'premium'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTier(t)}
+                  disabled={loading}
+                  aria-pressed={tier === t}
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${tier === t ? 'bg-indigo-500/30 text-white shadow-[0_0_10px_rgba(99,102,241,0.25)]' : 'text-gray-400 hover:text-white'}`}
+                >
+                  {t === 'free' ? 'Free' : 'Premium'}
+                </button>
               ))}
-            </select>
+            </div>
             {insufficient ? (
               <button type="button" onClick={() => navigate('/pricing')} className="hidden sm:flex items-center gap-1 text-xs font-medium text-amber-300/90 hover:text-amber-200 transition-colors">
-                Need 5 credits
+                Need {cost} credits
               </button>
             ) : (
-              <span className="hidden sm:inline text-xs text-gray-500">· 5 credits</span>
+              <span className="hidden sm:inline text-xs text-gray-500">· {cost} credits</span>
             )}
           </div>
           <motion.button
@@ -248,12 +228,9 @@ const PromptForm = () => {
             )}
           </motion.button>
         </div>
-        {activeModel && (
-          <p className="mt-2.5 text-[11px] text-gray-500 relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-gray-400">{activeModel.description}</span>
-            {(activeModel.bestFor || []).map((tag: string) => (
-              <span key={tag} className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-400">{tag}</span>
-            ))}
+        {activeTier && (
+          <p className="mt-2.5 text-[11px] text-gray-500 relative z-10">
+            <span className="text-gray-400">{activeTier.description}</span>
           </p>
         )}
       </motion.form>
@@ -284,10 +261,7 @@ const Home = () => {
       <Seo path="/" />
       <section className="relative flex flex-col items-center px-4 md:px-16 lg:px-24 xl:px-32">
 
-        {/* Static backdrop. Nothing in here animates, which is the point: a blur that
-            never moves is rasterized once and cached by the compositor, unlike the
-            old animated blobs + WebGL shader + particle canvas, which repainted the
-            whole hero every frame on machines without a dedicated GPU. */}
+        {}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-grid opacity-50" />
           <div className="absolute -top-40 left-1/2 h-[34rem] w-[46rem] -translate-x-1/2 rounded-full bg-indigo-600/15 blur-[120px]" />
@@ -333,8 +307,7 @@ const Home = () => {
           <PromptForm />
         </motion.div>
 
-        {/* The deck opens as it scrolls into view — "one prompt, every page" told as a
-            gesture rather than a sentence. */}
+        {}
         <Reveal className="mt-20 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">One prompt · every page</p>
           <h2 className="font-display mt-3 text-2xl md:text-3xl font-bold tracking-tight">Not a page. A whole site.</h2>
