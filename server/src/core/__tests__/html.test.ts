@@ -23,6 +23,16 @@ describe('extractHtml', () => {
     const doc = '<!DOCTYPE html><html><body>ok</body></html>'
     expect(extractHtml(doc)).toBe(doc)
   })
+
+  it('strips reasoning preamble before a fragment', () => {
+    const out = extractHtml('We need to output only the HTML.\n<section>hi</section>')
+    expect(out.startsWith('<section>')).toBe(true)
+  })
+
+  it('drops trailing prose after the document', () => {
+    const out = extractHtml('<!doctype html><html><body>ok</body></html>\n\nLet me know if you need changes!')
+    expect(out.toLowerCase().endsWith('</html>')).toBe(true)
+  })
 })
 
 describe('looksLikeHtml', () => {
