@@ -27,9 +27,6 @@ export const TIERS: TierOption[] = [
   },
 ];
 
-// Premium tier — paid model chosen for the best quality that stays reliable
-// (gpt-5-mini led our benchmark at 94/100). Premium users trade a little extra
-// time for polish, and the generator tells them so. Override via env.
 const PREMIUM_MODEL = process.env.PREMIUM_MODEL || 'openai/gpt-5-mini';
 
 export const isValidTier = (id?: string | null): id is Tier =>

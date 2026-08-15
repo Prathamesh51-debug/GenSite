@@ -22,6 +22,7 @@ const escapeTitle = (t: string): string => String(t ?? '').replace(/[<>&$]/g, ''
 export interface GenerationResult {
   files: Record<string, string>; // path -> html
   index: string;                 // files['index.html']
+  downgraded?: boolean;
 }
 
 // Normalize a model-proposed page path to a safe, flat `*.html` filename. Strips
@@ -65,23 +66,50 @@ const parseBrief = (raw?: string | null): DesignBrief | null => {
   }
 };
 
+const generateSinglePage = async (
+  model: string,
+  prompt: string,
+  signal?: AbortSignal
+): Promise<{ html: string; usedModel: string } | null> => {
+  let best = '';
+  let bestModel = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res: any = await createChatCompletion(
+      { model, max_tokens: 16000, messages: buildSinglePageMessages(prompt) },
+      { signal }
+    ).catch(() => null);
+    const html = extractHtml(res?.choices?.[0]?.message?.content) || '';
+    const usedModel = res?.model || '';
+    const truncated = res?.choices?.[0]?.finish_reason === 'length';
+    if (looksLikeHtml(html) && !truncated && /<\/html>/i.test(html)) return { html, usedModel };
+    if (html.length > best.length) { best = html; bestModel = usedModel; }
+  }
+  return looksLikeHtml(best) ? { html: best, usedModel: bestModel } : null;
+};
+
 export const generateSite = async (
   prompt: string,
   opts: { signal?: AbortSignal; onProgress?: (msg: string) => void; model?: string | null } = {}
 ): Promise<GenerationResult | null> => {
   const { signal, onProgress } = opts;
-  // Premium runs on a higher-quality (slower) model; we set that expectation in the UI.
   const isPremium = opts.model === 'premium';
   // A specific chosen model (or null → the Auto multi-model mix).
   const chosen = resolveModel(opts.model);
   const briefModel = chosen || FREE_MODEL;
 
-  // --- Step 1: design brief ---
   onProgress?.(
     isPremium
       ? 'Crafting your premium site — our best model takes a little longer for the extra polish. Hang tight…'
-      : 'Designing your site…'
+      : 'Building your site…'
   );
+  const single = await generateSinglePage(briefModel, prompt, signal);
+  if (single) {
+    const downgraded = isPremium && !!chosen && !!single.usedModel && !single.usedModel.startsWith(chosen);
+    return { files: { 'index.html': single.html }, index: single.html, downgraded };
+  }
+
+  // --- Step 1: design brief ---
+  onProgress?.('Designing your site…');
   const briefRes = await createChatCompletion(
     { model: briefModel, max_tokens: 1500, messages: buildBriefMessages(prompt) },
     { signal }

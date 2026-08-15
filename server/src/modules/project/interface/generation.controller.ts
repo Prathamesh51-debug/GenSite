@@ -64,6 +64,14 @@ export const streamGeneration = async (req: Request, res: Response) => {
         }
 
         const { files, index } = result;
+
+        if (result.downgraded && cost > CREDIT_COSTS.generate) {
+            const surcharge = cost - CREDIT_COSTS.generate;
+            await refundCredits(userId, surcharge).catch(() => {});
+            cost = CREDIT_COSTS.generate;
+            send({ type: 'progress', message: `Our premium model was briefly unavailable, so your site was built with a standard model — we've refunded ${surcharge} credits.` });
+        }
+
         const indexRef = await storeHtml(index, projectId);
         const pageCount = Object.keys(files).length;
 
