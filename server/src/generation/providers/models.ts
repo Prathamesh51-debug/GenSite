@@ -27,7 +27,10 @@ export const TIERS: TierOption[] = [
   },
 ];
 
-const PREMIUM_MODEL = process.env.PREMIUM_MODEL || 'anthropic/claude-sonnet-5';
+// Premium tier. For now this points at the strongest FREE coder so both tiers
+// cost $0 while the project is being finished. When ready, flip to a paid model
+// by setting PREMIUM_MODEL in the env (e.g. openai/gpt-5-mini) — no code change.
+const PREMIUM_MODEL = process.env.PREMIUM_MODEL || 'openai/gpt-oss-120b:free';
 
 export const isValidTier = (id?: string | null): id is Tier =>
   id === 'free' || id === 'premium';
