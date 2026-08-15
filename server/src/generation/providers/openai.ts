@@ -9,16 +9,16 @@ const openai = new OpenAI({
   maxRetries: 0,
 });
 
+// Free/cheap tier — gpt-oss-120b is fast (~30s), reliable and cheap; qwen3-coder
+// is an equally-fast fallback so one being rate-limited never breaks the tier.
 export const FREE_MODELS = process.env.GEN_MODELS?.split(',').map((s) => s.trim()).filter(Boolean) ?? [
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'nvidia/nemotron-3.5-lightning:free',
-  'nvidia/nemotron-3-nano-30b-a3b:free',
-  'openrouter/free',
+  'openai/gpt-oss-120b',
+  'qwen/qwen3-coder',
 ];
 
 export const FREE_MODEL = process.env.GEN_MODEL || FREE_MODELS[0];
 
-export const EDIT_MODEL = process.env.EDIT_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
+export const EDIT_MODEL = process.env.EDIT_MODEL || 'openai/gpt-oss-120b';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

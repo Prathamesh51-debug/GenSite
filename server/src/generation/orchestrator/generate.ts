@@ -70,12 +70,18 @@ export const generateSite = async (
   opts: { signal?: AbortSignal; onProgress?: (msg: string) => void; model?: string | null } = {}
 ): Promise<GenerationResult | null> => {
   const { signal, onProgress } = opts;
+  // Premium runs on a higher-quality (slower) model; we set that expectation in the UI.
+  const isPremium = opts.model === 'premium';
   // A specific chosen model (or null → the Auto multi-model mix).
   const chosen = resolveModel(opts.model);
   const briefModel = chosen || FREE_MODEL;
 
   // --- Step 1: design brief ---
-  onProgress?.('Designing your site…');
+  onProgress?.(
+    isPremium
+      ? 'Crafting your premium site — our best model takes a little longer for the extra polish. Hang tight…'
+      : 'Designing your site…'
+  );
   const briefRes = await createChatCompletion(
     { model: briefModel, max_tokens: 1500, messages: buildBriefMessages(prompt) },
     { signal }
@@ -109,7 +115,7 @@ export const generateSite = async (
   if (canUseLayout) {
     // --- Step 2b: only each page's UNIQUE content, injected into the shared layout.
     // The chrome is byte-for-byte identical because it comes from one `layout` string. ---
-    onProgress?.(`Building ${pageLabel}…`);
+    onProgress?.(isPremium ? `Polishing ${pageLabel} with the premium model — worth the wait…` : `Building ${pageLabel}…`);
     const contentResults = await Promise.all(
       brief.pages.map((page, i) =>
         createChatCompletion(
