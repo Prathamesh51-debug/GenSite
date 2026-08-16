@@ -67,7 +67,7 @@ export const revisionService = {
 
             const response = await createChatCompletion({
                 model: EDIT_MODEL,
-                max_tokens: 12000,
+                max_tokens: 16000,
                 messages: [
                     {
                         role: 'system',
@@ -91,15 +91,15 @@ CRITICAL HARD RULES:
 4. Output must start with <!DOCTYPE html> with nothing before or after the HTML.`
                     }, {
                         role: 'user',
-                        content: `${historyBlock}CHANGE REQUEST:\n${message}\n\nYou are editing the "${targetPath}" page of the site. Apply the change across the WHOLE page where relevant, and keep the header/nav links to the other pages intact.\n\nCURRENT HTML:\n${sourceHtml}`
+                        content: `${historyBlock}CHANGE REQUEST:\n${message}\n\nThis is a single-page site. Apply the change across the WHOLE page where relevant, and keep the in-page section navigation (nav anchor links to #section-ids) working.\n\nCURRENT HTML:\n${sourceHtml}`
                     }
                 ]
             });
 
             const generated = extractHtml(response.choices?.[0]?.message?.content);
+            const truncated = response.choices?.[0]?.finish_reason === 'length';
 
-            if (!looksLikeHtml(generated)) {
-                // Refund and keep the current version rather than saving garbage.
+            if (!looksLikeHtml(generated) || truncated) {
                 await refundCredits(userId, CREDIT_COSTS.revision);
                 charged = false;
                 await projectRepository.addMessage(projectId, 'assistant', "I couldn't apply that change reliably, so I kept your current version and refunded your credits. Try rephrasing the request a little more specifically.");
@@ -153,7 +153,7 @@ CRITICAL HARD RULES:
 
             const response = await createChatCompletion({
                 model: EDIT_MODEL,
-                max_tokens: 4000,
+                max_tokens: 6000,
                 messages: [
                     {
                         role: 'system',
