@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <rect x="1" y="1" width="898" height="428" rx="20" fill="#f8fafc" stroke="#e2e8f0"/>
+
+  <text x="40" y="56" font-size="12" letter-spacing="2" font-weight="700" fill="#64748b">GENSITE · IMPACT AT A GLANCE</text>
+  <text x="40" y="90" font-size="26" font-weight="800" fill="#0f172a">From a tutorial clone to a lean product</text>
+  <text x="40" y="116" font-size="14" fill="#475569">The measurable wins across 74 commits &#8212; performance, cost, uptime, and generation quality.</text>
+
+  <!-- KPI card 1 -->
+  <rect x="40" y="150" width="190" height="150" rx="14" fill="#ffffff" stroke="#e6edf3"/>
+  <text x="60" y="182" font-size="11" letter-spacing="1.5" font-weight="700" fill="#94a3b8">GENERATION</text>
+  <text x="60" y="224" font-size="32" font-weight="800" fill="#0d9488">5 &#8594; 1</text>
+  <text x="60" y="252" font-size="13" font-weight="600" fill="#334155">LLM calls / site</text>
+  <text x="60" y="273" font-size="11" fill="#94a3b8">single-page&#160;·&#160;vs multi-page</text>
+
+  <!-- KPI card 2 -->
+  <rect x="250" y="150" width="190" height="150" rx="14" fill="#ffffff" stroke="#e6edf3"/>
+  <text x="270" y="182" font-size="11" letter-spacing="1.5" font-weight="700" fill="#94a3b8">COST</text>
+  <text x="270" y="224" font-size="32" font-weight="800" fill="#d97706">$0.01</text>
+  <text x="270" y="252" font-size="13" font-weight="600" fill="#334155">per site, free tier</text>
+  <text x="270" y="273" font-size="11" fill="#94a3b8">measured&#160;·&#160;~$0.02 premium</text>
+
+  <!-- KPI card 3 -->
+  <rect x="460" y="150" width="190" height="150" rx="14" fill="#ffffff" stroke="#e6edf3"/>
+  <text x="480" y="182" font-size="11" letter-spacing="1.5" font-weight="700" fill="#94a3b8">FRONTEND</text>
+  <text x="480" y="224" font-size="32" font-weight="800" fill="#7c3aed">&#8722;2.8k</text>
+  <text x="480" y="252" font-size="13" font-weight="600" fill="#334155">lines &#38; 7 libs cut</text>
+  <text x="480" y="273" font-size="11" fill="#94a3b8">lighter GPU + bundle</text>
+
+  <!-- KPI card 4 -->
+  <rect x="670" y="150" width="190" height="150" rx="14" fill="#ffffff" stroke="#e6edf3"/>
+  <text x="690" y="182" font-size="11" letter-spacing="1.5" font-weight="700" fill="#94a3b8">UPTIME</text>
+  <text x="690" y="224" font-size="32" font-weight="800" fill="#16a34a">0</text>
+  <text x="690" y="252" font-size="13" font-weight="600" fill="#334155">cold starts / pauses</text>
+  <text x="690" y="273" font-size="11" fill="#94a3b8">keep-alive worker</text>
+
+  <!-- guard pills -->
+  <rect x="40" y="322" width="252" height="34" rx="17" fill="#f0fdfa" stroke="#99f6e4"/>
+  <text x="60" y="344" font-size="12.5" font-weight="600" fill="#0f766e">&#10003;&#160;&#160;50-file layered restructure</text>
+
+  <rect x="304" y="322" width="266" height="34" rx="17" fill="#f0fdfa" stroke="#99f6e4"/>
+  <text x="324" y="344" font-size="12.5" font-weight="600" fill="#0f766e">&#10003;&#160;&#160;Truncation-guarded single page</text>
+
+  <rect x="582" y="322" width="278" height="34" rx="17" fill="#f0fdfa" stroke="#99f6e4"/>
+  <text x="602" y="344" font-size="12.5" font-weight="600" fill="#0f766e">&#10003;&#160;&#160;Premium&#8594;free downgrade refund</text>
+
+  <text x="40" y="392" font-size="11" fill="#94a3b8">Free and premium costs measured per generated site on OpenRouter.</text>
+</svg>
