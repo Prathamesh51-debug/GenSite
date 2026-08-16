@@ -18,6 +18,8 @@ export const FREE_MODEL = process.env.GEN_MODEL || FREE_MODELS[0];
 
 export const EDIT_MODEL = process.env.EDIT_MODEL || 'openai/gpt-oss-120b';
 
+export const ENHANCE_MODEL = process.env.ENHANCE_MODEL || 'qwen/qwen3-coder';
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const retryDelay = (attempt: number, hintSeconds?: number) => {

@@ -9,13 +9,15 @@ export const DESIGN_GUIDE = `DESIGN QUALITY — make it look like a premium, pro
 - Add polish: sticky header, a strong hero with one clear CTA, alternating section backgrounds, hover states and smooth transitions (transition, duration-300, hover:scale-105, group-hover) on EVERY interactive element and section.
 - Mobile-first responsive layout using Tailwind prefixes (sm: md: lg: xl:).
 
-REAL IMAGES — never use gray placeholder boxes:
-- Photos: https://picsum.photos/seed/UNIQUE-KEYWORD/WIDTH/HEIGHT (use a different seed per image).
+REAL IMAGES — every photo must MATCH this site's subject (never gray boxes, never off-topic):
+- Content photos: https://loremflickr.com/WIDTH/HEIGHT/KEYWORD?lock=N
+  - KEYWORD = 1-3 SINGLE words joined by commas, with NO spaces and NO multi-word phrases. CORRECT: "trading,finance,charts" or "coffee,cafe". WRONG: "trading platform interface" or "crypto%20dashboard" — spaces break the image and it won't load. Keep the words on-topic and SAFE for THIS business.
+  - N = a unique integer per image, so each image is STABLE across reloads and DISTINCT from the others. Use a fitting keyword for every hero, card and section image.
 - Avatars (testimonials/team): https://i.pravatar.cc/150?img=N (N between 1 and 70).
-- Every <img> needs descriptive alt text and width/height (or aspect-ratio) to avoid layout shift.
+- Every <img> needs descriptive alt text and explicit width/height (or aspect-ratio) to avoid layout shift.
 
 SEO & METADATA — include in every page:
-- <html lang="en">, a real <title>, <meta name="description">, Open Graph tags (og:title, og:description, og:image set to a Picsum URL), and <meta name="viewport" content="width=device-width, initial-scale=1">.
+- <html lang="en">, a real <title>, <meta name="description">, Open Graph tags (og:title, og:description, og:image set to a loremflickr URL using the main keyword), and <meta name="viewport" content="width=device-width, initial-scale=1">.
 - An emoji SVG favicon: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>EMOJI</text></svg>"> (pick an emoji that fits the brand).
 
 FORMS — if there is a contact/signup/newsletter section:
@@ -171,13 +173,22 @@ CRITICAL: Output ONLY the content fragment (start with a <section>). No page chr
   ];
 };
 
-// Fallback — single-page generation (used if the brief step fails).
+// Single-page site generation — the primary generation path.
 export const buildSinglePageMessages = (prompt: string) => [
   {
     role: 'system' as const,
-    content: `You are an expert web developer. Create a complete, production-ready, single-page website based on this request: "${prompt}"
+    content: `You are an expert web developer. Create a complete, production-ready, single-page website based on the user's request in the user message (which may include a DESIGN BRIEF to follow).
+
+The user's OWN words always take priority. The DESIGN BRIEF is only a helpful expansion for anything the user left unspecified — wherever the brief conflicts with something the user explicitly asked for (a colour, a theme, a specific section or feature), follow the USER and ignore the brief on that point.
 
 Build a FULL multi-section site appropriate to the request — even if the request is brief — with a header/nav, hero, several content sections, and a footer.
+
+SINGLE-PAGE NAVIGATION — this is ONE page; the nav scrolls, it never leaves the page:
+- Give every major section a real id: <section id="menu">, <section id="about">, <section id="contact">, etc.
+- Every header/nav link MUST be an in-page anchor href="#section-id" that points to a section id that ACTUALLY EXISTS on this page. Build the sections first, then create the nav from exactly those ids — every nav link must resolve to a real section, with NO mismatches.
+- NEVER use href="#" (dead link) and NEVER link to another file (no about.html, menu.html, shop.html, order.html). There is only this one page.
+- The mobile hamburger menu uses the SAME #section-id anchors and closes on click.
+- Add html { scroll-behavior: smooth } AND, before </body>, a script that intercepts clicks on nav anchors and smooth-scrolls to the target section, so navigation works reliably.
 
 CRITICAL REQUIREMENTS:
 - Output valid HTML ONLY.
@@ -190,6 +201,26 @@ CRITICAL HARD RULES:
 1. Put ALL output ONLY into the message content. Do NOT use "reasoning"/"analysis" or any hidden fields.
 2. Do NOT include explanations, notes, comments or markdown code fences.
 3. Output must start with <!DOCTYPE html> with nothing before or after the HTML.`,
+  },
+  { role: 'user' as const, content: prompt },
+];
+
+// Expand a short/vague request into a COMPLETE, PRESCRIPTIVE single-page brief so
+// that even a small/weak model can produce an excellent site by following it literally.
+export const buildEnhanceMessages = (prompt: string) => [
+  {
+    role: 'system' as const,
+    content: `You are a senior art director and copywriter. Turn the user's brief website request into a COMPLETE, PRESCRIPTIVE build brief for a SINGLE-PAGE website — detailed and concrete enough that even a small or weak AI model can produce an excellent, premium site by following it literally. Output plain text only (no markdown fences, no preamble, no explanation).
+
+Invent a fitting brand name, then specify EXACTLY (be concrete — real names and values, never vague adjectives):
+- BRAND & POSITIONING: brand name, one-line value proposition, target audience, tone (3-4 words).
+- PALETTE: primary, accent, and 2 neutral colours as #hex — on-brand for the industry (never default blue-on-white).
+- FONTS: a Google Fonts pairing by exact name — a display font for headings + a clean body font.
+- SECTIONS (in order, e.g. hero → ... → footer): for EACH section give its <section id>, a concrete headline/subhead direction, the SPECIFIC content it shows (real example items — e.g. 3 named products with one-line descriptions, actual FAQ questions — not "some products"), the layout (grid / split / columns), any CTA button text, and one loremflickr image KEYWORD for it.
+- NAVIGATION: the header nav items, each mapping to a section id above.
+- FEATURES/INTERACTIONS: the specific interactive pieces to include (mobile hamburger menu, contact form with named fields, FAQ accordion, etc.).
+
+Hard rules: it is ONE page — describe SECTIONS, never separate pages or files. Preserve every detail the user stated; only invent where they were silent. Keep it tight and skimmable.`,
   },
   { role: 'user' as const, content: prompt },
 ];
