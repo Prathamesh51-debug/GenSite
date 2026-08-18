@@ -9,12 +9,14 @@ export const DESIGN_GUIDE = `DESIGN QUALITY — make it look like a premium, pro
 - Add polish: sticky header, a strong hero with one clear CTA, alternating section backgrounds, hover states and smooth transitions (transition, duration-300, hover:scale-105, group-hover) on EVERY interactive element and section.
 - Mobile-first responsive layout using Tailwind prefixes (sm: md: lg: xl:).
 
-REAL IMAGES — every photo must MATCH this site's subject (never gray boxes, never off-topic):
+REAL IMAGES — every visual must ACTUALLY LOAD and MATCH this site's subject (never gray boxes, never off-topic):
 - Content photos: https://loremflickr.com/WIDTH/HEIGHT/KEYWORD?lock=N
   - KEYWORD = 1-3 SINGLE words joined by commas, with NO spaces and NO multi-word phrases. CORRECT: "trading,finance,charts" or "coffee,cafe". WRONG: "trading platform interface" or "crypto%20dashboard" — spaces break the image and it won't load. Keep the words on-topic and SAFE for THIS business.
   - N = a unique integer per image, so each image is STABLE across reloads and DISTINCT from the others. Use a fitting keyword for every hero, card and section image.
 - Avatars (testimonials/team): https://i.pravatar.cc/150?img=N (N between 1 and 70).
 - Every <img> needs descriptive alt text and explicit width/height (or aspect-ratio) to avoid layout shift.
+- NEVER stand in an image with a fake "mockup" / "product screenshot" / "app UI" placeholder box, an empty gradient <div>, or a captioned grey rectangle. If a section needs a product screenshot, app/dashboard UI or a hero visual, use a REAL <img> loading a loremflickr URL with a fitting keyword (e.g. "dashboard,software,ui" or "app,analytics,screen"). Do NOT emit any element whose only content is placeholder/caption text describing an image that isn't there.
+- NEVER cover an <img> with an absolutely-positioned gradient/overlay <div> (e.g. class "absolute inset-0 bg-gradient-..."): a positioned overlay paints ON TOP and hides the photo. If you want a tint, put it BEHIND the image or use low opacity; the actual photo must always be visible.
 
 SEO & METADATA — include in every page:
 - <html lang="en">, a real <title>, <meta name="description">, Open Graph tags (og:title, og:description, og:image set to a loremflickr URL using the main keyword), and <meta name="viewport" content="width=device-width, initial-scale=1">.
@@ -40,6 +42,11 @@ ANIMATION & MOTION (make the page feel alive and top-class):
 ACCESSIBILITY: semantic HTML5 landmarks (header/nav/main/section/footer), alt text, <label> tied to each input, and WCAG AA color contrast.
 
 AWARD-LEVEL POLISH: aim for an Awwwards-worthy result — a confident oversized type scale, deliberate whitespace, a distinctive hero, tasteful motion and micro-interactions. It should look designed by a top studio for THIS specific brand, not a generic template.`;
+
+export const EDIT_IMAGE_RULES = `IMAGES — every new visual must actually LOAD (never a fake box):
+- Use a real <img> whose src is https://loremflickr.com/WIDTH/HEIGHT/KEYWORD?lock=N — KEYWORD is 1-3 SINGLE words joined by commas with NO spaces (e.g. "dashboard,software,ui" or "coffee,cafe"), N a unique integer per image. Avatars: https://i.pravatar.cc/150?img=N (N 1-70). Give every <img> alt text and explicit width/height.
+- NEVER produce a fake "mockup"/"screenshot"/"product UI" placeholder box, an empty gradient <div>, or a captioned grey rectangle in place of an image. A product screenshot / app / dashboard visual must be a REAL <img> with a fitting keyword.
+- If the element you are editing IS (or contains) such a placeholder — e.g. an absolutely-positioned "absolute inset-0 bg-gradient-..." overlay standing in for an image — REMOVE that overlay and put a real <img> in its place. Never leave a positioned gradient/overlay <div> covering the photo (it paints on top and hides it).`;
 
 export interface BriefPage { path: string; title: string; purpose?: string; sections?: string[] }
 export interface DesignBrief {
@@ -94,7 +101,7 @@ INDUSTRY / VIBE: ${brief.industry ?? ''} — ${brief.vibe ?? ''}. Tone: ${brief.
 DESIGN SYSTEM — apply IDENTICALLY on every page so the site feels cohesive:
 - Colours: primary ${brief.palette?.primary ?? ''}, accent ${brief.palette?.accent ?? ''}, neutrals ${neutrals}.
 - Fonts: display "${brief.fonts?.display ?? 'Space Grotesk'}" for headings, "${brief.fonts?.body ?? 'Inter'}" for body (load via Google Fonts <link>).
-- Imagery: use these keywords as picsum seeds — ${(brief.imageryKeywords || []).join(', ')}.
+- Imagery: use these keywords for loremflickr photos — ${(brief.imageryKeywords || []).join(', ')}.
 
 THIS PAGE — purpose: ${page.purpose ?? ''}. Suggested sections: ${(page.sections || []).join(', ')}.
 
@@ -162,7 +169,7 @@ THIS PAGE — purpose: ${page.purpose ?? ''}. Suggested sections: ${(page.sectio
 Requirements:
 - Output ONLY the inner content for THIS page — a series of <section> blocks. NO <html>, <head>, <header>, <nav>, <footer>, and NO <main> wrapper.
 - Use Tailwind utility classes and the design-system colours/fonts consistently with the rest of the site.
-- Real images: https://picsum.photos/seed/KEYWORD/WIDTH/HEIGHT and avatars https://i.pravatar.cc/150?img=N (N 1-70). Never gray boxes. Imagery keywords: ${(brief.imageryKeywords || []).join(', ')}.
+- Real images: https://loremflickr.com/WIDTH/HEIGHT/KEYWORD?lock=N (KEYWORD = 1-3 single words joined by commas, no spaces) and avatars https://i.pravatar.cc/150?img=N (N 1-70). Never gray boxes or fake "mockup"/"screenshot" placeholder divs. Imagery keywords: ${(brief.imageryKeywords || []).join(', ')}.
 - Add data-aos scroll animations (fade-up / zoom-in) with staggered data-aos-delay.
 - If this page needs interactive components (accordion, tabs, slider, contact form), include WORKING JavaScript for them in a <script> at the END of the fragment; forms must preventDefault and show a success message.
 - Award-level quality: a bold type scale, generous whitespace, and a strong hero for the home page.

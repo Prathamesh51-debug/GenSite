@@ -6,6 +6,8 @@ import { CREDIT_COSTS } from '@/shared/config/constants.js';
 import { ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError, BadRequestError } from '@/shared/http/AppError.js';
 import { projectRepository } from '@/modules/project/data/project.repository.js';
 import { editing, pruneVersions } from '@/modules/project/domain/project.runtime.js';
+import { enhanceImages } from '@/generation/images/imageProvider.js';
+import { EDIT_IMAGE_RULES } from '@/generation/prompts/prompts.js';
 
 // Pick which page a chat revision edits: a page named in the message wins, else the
 // page the user is viewing (`path`), else the home page. Single-page -> index.html.
@@ -82,7 +84,9 @@ CRITICAL REQUIREMENTS:
 - Return the COMPLETE, updated HTML document (not a fragment, not a diff, not an explanation).
 - The document MUST keep this exact script in the <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 - Use Tailwind utility classes for all styling (no custom <style> CSS). For animation use Tailwind utilities (animate-*, transition-*, duration-*, hover:*, group-hover:*) on the relevant elements throughout the page.
-- Keep the design premium and cohesive. When adding NEW images use real photos (https://picsum.photos/seed/KEYWORD/W/H) or avatars (https://i.pravatar.cc/150?img=N) — never gray placeholder boxes.
+- Keep the design premium and cohesive.
+
+${EDIT_IMAGE_RULES}
 
 CRITICAL HARD RULES:
 1. Put ALL output ONLY into the message content.
@@ -106,8 +110,10 @@ CRITICAL HARD RULES:
                 throw new UpstreamError('The AI did not return a valid website — your credits were refunded.');
             }
 
-            const updatedFiles = filesObj ? { ...filesObj, [targetPath]: generated } : undefined;
-            const indexHtml = updatedFiles ? (updatedFiles['index.html'] ?? generated) : generated;
+            const enhanced = await enhanceImages(generated).catch(() => generated);
+
+            const updatedFiles = filesObj ? { ...filesObj, [targetPath]: enhanced } : undefined;
+            const indexHtml = updatedFiles ? (updatedFiles['index.html'] ?? enhanced) : enhanced;
             const indexRef = await storeHtml(indexHtml, projectId);
 
             const version = await projectRepository.createVersion({
@@ -162,8 +168,9 @@ CRITICAL HARD RULES:
 RULES:
 - Return ONLY the element's HTML. The root tag must be the SAME kind of element. No <html>, <head> or <body> wrapper.
 - Use Tailwind utility classes for styling and animation (transition, duration-300, hover:*, animate-*).
-- For any new images use real photos: https://picsum.photos/seed/KEYWORD/W/H (avatars: https://i.pravatar.cc/150?img=N). Never gray placeholders.
-- Do NOT include explanations, comments, or markdown code fences. Output the HTML only.`
+- Do NOT include explanations, comments, or markdown code fences. Output the HTML only.
+
+${EDIT_IMAGE_RULES}`
                     },
                     {
                         role: 'user',
@@ -179,7 +186,7 @@ RULES:
                 throw new UpstreamError('Could not edit that element — credits refunded. Try rephrasing.');
             }
 
-            return newHtml;
+            return await enhanceImages(newHtml).catch(() => newHtml);
         } catch (err) {
             if (charged) await refundCredits(userId, CREDIT_COSTS.elementEdit).catch(() => {});
             throw err;
