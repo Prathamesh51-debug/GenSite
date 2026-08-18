@@ -241,12 +241,12 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
 
         return (
             <div
-                className="relative h-full bg-gray-900 flex-1 rounded-xl overflow-hidden max-sm:ml-2"
+                className="relative h-full bg-secondary flex-1 rounded-xl overflow-hidden max-sm:ml-2"
             >
                 {project.current_code ? (
                     <div className="flex flex-col h-full">
                         {isMulti && (
-                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-gray-950/60 border-b border-white/10 px-2 py-1.5" role="tablist" aria-label="Pages">
+                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-card/70 border-b border-border px-2 py-1.5" role="tablist" aria-label="Pages">
                                 {pageNames.map((name) => (
                                     <button
                                         key={name}
@@ -254,7 +254,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                                         role="tab"
                                         aria-selected={activeFile === name}
                                         onClick={() => setActiveFile(name)}
-                                        className={`shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors ${activeFile === name ? 'bg-indigo-500/30 text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                        className={`shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors ${activeFile === name ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
                                     >
                                         {name}
                                     </button>
@@ -301,38 +301,38 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                             sandbox={sandbox}
                             title="generating-preview"
                         />
-                        <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur px-3 py-1.5 text-xs text-white border border-white/10">
-                            <span className="size-2 rounded-full bg-indigo-400 animate-pulse" /> Building your site…
+                        <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-card/85 backdrop-blur px-3 py-1.5 text-xs text-foreground border border-border">
+                            <span className="size-2 rounded-full bg-primary animate-pulse" /> Building your site…
                         </div>
                         {onCancel && (
-                            <button onClick={onCancel} className="absolute top-3 right-3 rounded-full bg-black/70 backdrop-blur px-3 py-1.5 text-xs text-gray-200 border border-white/10 hover:bg-black/90 hover:text-white transition-colors">Cancel</button>
+                            <button onClick={onCancel} className="absolute top-3 right-3 rounded-full bg-card/85 backdrop-blur px-3 py-1.5 text-xs text-foreground border border-border hover:border-primary/50 transition-colors">Cancel</button>
                         )}
                     </div>
                 ) : isGenerating ? (
                     <div className="relative h-full">
                         <LoaderSteps />
                         {statusText && (
-                            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur px-4 py-1.5 text-xs text-gray-100 border border-white/10 max-w-[90%]">
-                                <span className="size-2 shrink-0 rounded-full bg-indigo-400 animate-pulse" />
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-card/85 backdrop-blur px-4 py-1.5 text-xs text-foreground border border-border max-w-[90%]">
+                                <span className="size-2 shrink-0 rounded-full bg-primary animate-pulse" />
                                 <span className="truncate">{statusText}</span>
                             </div>
                         )}
                         {onCancel && (
-                            <button onClick={onCancel} className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-white/10 backdrop-blur px-4 py-1.5 text-xs text-gray-200 border border-white/10 hover:bg-white/20 hover:text-white transition-colors">Cancel generation</button>
+                            <button onClick={onCancel} className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-card/85 backdrop-blur px-4 py-1.5 text-xs text-foreground border border-border hover:border-primary/50 transition-colors">Cancel generation</button>
                         )}
                     </div>
                 ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6 text-gray-400">
+                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6 text-muted-foreground">
                         <p className="text-sm">This project hasn’t been generated yet.</p>
                         {onGenerate && (
                             <button
                                 onClick={() => onGenerate()}
-                                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition active:scale-95 hover:shadow-lg hover:shadow-indigo-500/40"
+                                className="flex items-center gap-2 rounded-organic-sm bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sticker-strong tilt-right transition active:scale-95 hover:brightness-105"
                             >
-                                <SparklesIcon className="size-4" /> Generate website · 5 credits
+                                <SparklesIcon className="size-4" /> Generate website · 5/20 credits
                             </button>
                         )}
-                        <p className="text-xs text-gray-500 max-w-sm">Generation uses 5 credits. If it fails, your credits are refunded automatically.</p>
+                        <p className="text-xs text-muted-foreground max-w-sm">Generation uses 5/20 credits depending on the model. If it fails, your credits are refunded automatically.</p>
                     </div>
                 )}
             </div>

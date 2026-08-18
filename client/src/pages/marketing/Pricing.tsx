@@ -5,6 +5,7 @@ import { authClient } from '@/shared/api/auth-client';
 import { toast } from 'sonner';
 import api from '@/shared/api/axios';
 import { CheckIcon, SparklesIcon, ArrowRightIcon, Loader2Icon } from 'lucide-react';
+import { SketchUnderline } from '@/shared/components/ui/HandDrawn';
 
 interface Plan {
   id: string;
@@ -57,24 +58,28 @@ const Pricing = () => {
   };
 
   return (
-    <div className="relative text-white overflow-hidden">
+    <div className="relative text-foreground overflow-hidden">
       <Seo title="Pricing" path="/pricing" description="Simple, transparent credit pricing for GenSite — start free and scale as you build." />
       {}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-grid" />
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-indigo-600/20 blur-[130px]" />
-        <div className="absolute top-40 -right-20 w-[26rem] h-[26rem] rounded-full bg-fuchsia-600/15 blur-[120px]" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-primary/10 blur-[130px]" />
+        <div className="absolute top-40 -right-20 w-[26rem] h-[26rem] rounded-full bg-clay/10 blur-[120px]" />
       </div>
 
       <div className="w-full max-w-6xl mx-auto px-4 min-h-[80vh]">
         {}
         <div className="text-center mt-20 animate-fade-in-down">
-          <p className="text-indigo-400 text-sm font-medium tracking-wide uppercase">Pricing</p>
-          <h1 className="text-shimmer text-4xl md:text-5xl font-semibold tracking-tight mt-3">
-            Simple, transparent pricing
+          <p className="text-eyebrow">Credits, not contracts</p>
+          <h1 className="font-display text-[44px] md:text-[66px] leading-[1.04] font-bold tracking-tight mt-3 text-foreground">
+            Pay for what you{' '}
+            <span className="relative inline-block whitespace-nowrap text-primary">
+              build
+              <SketchUnderline className="text-clay" />
+            </span>.
           </h1>
-          <p className="text-shimmer text-base max-w-md mx-auto mt-4">
-            Start for free and scale up as you grow. Find the perfect plan for your website-building needs.
+          <p className="text-[17px] md:text-[18px] max-w-md mx-auto mt-6 text-muted-foreground">
+            Start free, top up whenever. No subscriptions, no surprises — every credit goes straight into building.
           </p>
         </div>
 
@@ -89,30 +94,30 @@ const Pricing = () => {
                 style={{ animationDelay: `${idx * 0.12}s` }}
               >
                 {}
-                <div className={`h-full rounded-2xl p-px ${popular ? 'gradient-border shadow-premium' : 'bg-white/10'}`}>
-                  <div className={`relative h-full flex flex-col rounded-2xl p-7 ${popular ? 'bg-zinc-950/90' : 'bg-white/[0.03] backdrop-blur-xl'}`}>
+                <div className={`h-full rounded-organic ${popular ? 'ink-border shadow-sticker tilt-right bg-card' : 'border border-border bg-card'}`}>
+                  <div className="relative h-full flex flex-col rounded-organic p-7">
                     {popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-gradient-to-r from-fuchsia-500 to-indigo-600 text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
                         <SparklesIcon className="size-3" /> Most popular
                       </span>
                     )}
 
-                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
                     <div className="mt-3 flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-gray-400 text-sm">/ {plan.credits} credits</span>
+                      <span className="font-display text-4xl font-bold text-foreground">{plan.price}</span>
+                      <span className="text-muted-foreground text-sm">/ {plan.credits} credits</span>
                     </div>
-                    <p className="text-gray-400 text-sm mt-3">{plan.description}</p>
+                    <p className="text-muted-foreground text-sm mt-3">{plan.description}</p>
 
-                    <div className="divider-gradient w-full my-6 opacity-50" />
+                    <div className="divider-gradient w-full my-6 opacity-70" />
 
                     <ul className="space-y-3 mb-8 text-sm flex-1">
                       {plan.features.map((feature, i) => (
                         <li key={i} className="flex items-center gap-3">
-                          <span className={`flex items-center justify-center size-5 rounded-full shrink-0 ${popular ? 'bg-indigo-500/30' : 'bg-white/10'}`}>
-                            <CheckIcon className="size-3 text-indigo-300" />
+                          <span className={`flex items-center justify-center size-5 rounded-full shrink-0 ${popular ? 'bg-primary/20' : 'bg-secondary'}`}>
+                            <CheckIcon className="size-3 text-primary" />
                           </span>
-                          <span className="text-gray-300">{feature}</span>
+                          <span className="text-foreground/90">{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -120,10 +125,10 @@ const Pricing = () => {
                     <button
                       onClick={() => handlePurchase(plan.id)}
                       disabled={pendingPlan !== null}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium active:scale-95 smooth-transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-organic-sm text-sm font-semibold active:scale-95 smooth-transition disabled:opacity-60 disabled:cursor-not-allowed ${
                         popular
-                          ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-500/40 animate-gradient'
-                          : 'glass hover:bg-white/10'
+                          ? 'bg-primary text-primary-foreground shadow-sticker-strong hover:brightness-105'
+                          : 'bg-card border border-border text-foreground hover:border-primary/50'
                       }`}
                     >
                       {pendingPlan === plan.id ? (
@@ -139,9 +144,9 @@ const Pricing = () => {
           })}
         </div>
 
-        <p className="mx-auto text-center text-sm max-w-md mt-12 text-gray-400 font-light">
-          Project <span className="text-white">creation / revision</span> consumes
-          <span className="text-white"> 5 credits</span>. Purchase more credits anytime to keep building.
+        <p className="mx-auto text-center text-sm max-w-md mt-12 text-muted-foreground">
+          Project <span className="text-foreground font-medium">creation / revision</span> consumes
+          <span className="text-foreground font-medium"> 5/20 credits</span> depending on the model. Purchase more credits anytime to keep building.
         </p>
       </div>
 

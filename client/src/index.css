@@ -99,10 +99,10 @@ html.lenis, html.lenis body { height: auto; }
 
 @keyframes pulse-glow {
    0%, 100% {
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 20px rgba(47, 93, 80, 0.35);
    }
    50% {
-      box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
+      box-shadow: 0 0 40px rgba(47, 93, 80, 0.6);
    }
 }
 
@@ -145,6 +145,12 @@ html.lenis, html.lenis body { height: auto; }
    100% {
       transform: rotate(360deg);
    }
+}
+
+/* A hand-drawn "settle" wobble — used sparingly on sticker elements. */
+@keyframes hand-wobble {
+   0%, 100% { transform: rotate(-0.6deg); }
+   50% { transform: rotate(0.4deg); }
 }
 
 
@@ -217,7 +223,7 @@ html.lenis, html.lenis body { height: auto; }
    background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.1),
+      color-mix(in srgb, var(--foreground) 8%, transparent),
       transparent
    );
    background-size: 1000px 100%;
@@ -231,7 +237,7 @@ html.lenis, html.lenis body { height: auto; }
 
 .hover-scale:hover {
    transform: scale(1.05);
-   box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+   box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 
@@ -255,6 +261,31 @@ html.lenis, html.lenis body { height: auto; }
    letter-spacing: -0.03em;
 }
 
+/* Editorial serif for warm display headings — system stack, no network font.
+   Opt in on hero/section titles for a mature, hand-set texture. */
+.font-serif-display {
+   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+   letter-spacing: -0.015em;
+}
+
+/* Small-caps clay eyebrow — the label above a heading. */
+.text-eyebrow {
+   font-size: 0.72rem;
+   letter-spacing: 0.22em;
+   text-transform: uppercase;
+   font-weight: 700;
+   color: var(--clay);
+}
+
+/* Warm clay gradient text for accents. */
+.text-gold-gradient {
+   background-image: linear-gradient(110deg, #E0A57F 0%, #C56A4E 48%, #9C4E36 100%);
+   -webkit-background-clip: text;
+   background-clip: text;
+   -webkit-text-fill-color: transparent;
+   color: transparent;
+}
+
 /* Declared here rather than using Tailwind's `font-mono`: the `*` rule above is
    unlayered, so it outranks anything in @layer utilities. Same reason .font-display
    exists. */
@@ -264,7 +295,7 @@ html.lenis, html.lenis body { height: auto; }
 
 
 .text-gradient-animate {
-   background-image: linear-gradient(110deg, #e0e7ff 0%, #a5b4fc 28%, #818cf8 50%, #c4b5fd 72%, #a5b4fc 100%);
+   background-image: linear-gradient(110deg, #2F5D50 0%, #3E7969 26%, #C56A4E 52%, #3E7969 76%, #2F5D50 100%);
    background-size: 220% auto;
    -webkit-background-clip: text;
    background-clip: text;
@@ -279,7 +310,7 @@ html.lenis, html.lenis body { height: auto; }
    100% { background-position: -200% center; }
 }
 .text-shimmer {
-   background-image: linear-gradient(110deg, #818cf8 0%, #c7d2fe 22%, #ffffff 42%, #c4b5fd 58%, #a5b4fc 78%, #818cf8 100%);
+   background-image: linear-gradient(110deg, #2F5D50 0%, #3E7969 22%, #C56A4E 46%, #E0A57F 58%, #3E7969 78%, #2F5D50 100%);
    background-size: 200% auto;
    -webkit-background-clip: text;
    background-clip: text;
@@ -289,29 +320,53 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 
+/* ── Hand-drawn signatures ──────────────────────────────────────────────
+   Offset "sticker" shadows, organic (uneven) corner radii, and slight tilts
+   are the core of the warm, made-by-hand look. They read on both themes
+   because the shadow colour is mixed from the live --primary token. */
+.shadow-sticker {
+   box-shadow: 5px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.shadow-sticker-strong {
+   box-shadow: 4px 5px 0 color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.rounded-organic {
+   border-radius: 30px 22px 34px 24px / 24px 32px 22px 34px;
+}
+.rounded-organic-sm {
+   border-radius: 16px 12px 18px 14px / 12px 18px 12px 18px;
+}
+.rounded-organic-lg {
+   border-radius: 34px 26px 30px 24px / 26px 32px 24px 34px;
+}
+.tilt-left { transform: rotate(-0.6deg); }
+.tilt-right { transform: rotate(0.5deg); }
+.ink-border { border: 2px solid var(--primary); }
+
+
 .panel {
-   background: #16161d;
-   border: 1px solid #26262f;
+   background: var(--card);
+   border: 1px solid var(--border);
 }
 .panel-hover {
    transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 .panel-hover:hover {
-   border-color: #3a3a48;
-   background: #1a1a22;
+   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+   background: color-mix(in srgb, var(--primary) 5%, var(--card));
 }
 
 
 .shadow-elevated {
-   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 22px 55px -28px rgba(0, 0, 0, 0.85);
+   box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--foreground) 4%, transparent), 0 22px 55px -30px color-mix(in srgb, var(--primary) 38%, transparent);
 }
 
 .glow-indigo {
-   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(99, 102, 241, 0.18), 0 28px 80px -32px rgba(99, 102, 241, 0.5);
+   box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--foreground) 5%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent), 0 28px 80px -34px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 
-.hairline { background: #26262f; }
+.hairline { background: var(--border); }
 
 
 @keyframes bot-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
@@ -326,7 +381,7 @@ html.lenis, html.lenis body { height: auto; }
 
 
 .text-gradient {
-   background-image: linear-gradient(115deg, #ffffff 0%, #c4b5fd 38%, #818cf8 66%, #e879f9 100%);
+   background-image: linear-gradient(115deg, #3E7969 0%, #2F5D50 38%, #C56A4E 100%);
    -webkit-background-clip: text;
    background-clip: text;
    -webkit-text-fill-color: transparent;
@@ -336,8 +391,8 @@ html.lenis, html.lenis body { height: auto; }
 
 .bg-grid {
    background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      linear-gradient(to right, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px);
    background-size: 46px 46px;
    -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 45%, transparent 100%);
            mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 45%, transparent 100%);
@@ -345,31 +400,31 @@ html.lenis, html.lenis body { height: auto; }
 
 
 .glass {
-   background: rgba(255, 255, 255, 0.055);
+   background: color-mix(in srgb, var(--card) 72%, transparent);
    backdrop-filter: blur(14px);
    -webkit-backdrop-filter: blur(14px);
-   border: 1px solid rgba(255, 255, 255, 0.09);
+   border: 1px solid var(--border);
 }
 
 
 .glow-ring {
-   box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25), 0 24px 70px -24px rgba(99, 102, 241, 0.55);
+   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent), 0 24px 70px -26px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 
 .shadow-premium {
-   box-shadow: 0 30px 90px -30px rgba(79, 70, 229, 0.5);
+   box-shadow: 0 30px 90px -34px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 
 .divider-gradient {
    height: 1px;
-   background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.5), transparent);
+   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--clay) 55%, transparent), transparent);
 }
 
 
 .gradient-border {
-   background: linear-gradient(130deg, rgba(129, 140, 248, 0.6), rgba(232, 121, 249, 0.35), rgba(129, 140, 248, 0.1));
+   background: linear-gradient(130deg, color-mix(in srgb, var(--primary) 55%, transparent), color-mix(in srgb, var(--clay) 40%, transparent), color-mix(in srgb, var(--primary) 12%, transparent));
 }
 
 
@@ -399,6 +454,10 @@ html.lenis, html.lenis body { height: auto; }
     --color-popover-foreground: var(--popover-foreground);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-gold: var(--gold);
+    --color-gold-foreground: var(--gold-foreground);
+    --color-clay: var(--clay);
+    --color-clay-foreground: var(--clay-foreground);
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
     --color-muted: var(--muted);
@@ -424,73 +483,131 @@ html.lenis, html.lenis body { height: auto; }
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ── Hand-drawn palette remap ──────────────────────────────────────────
+   The app was built on Tailwind's stock indigo/violet/fuchsia (the electric
+   "AI-generated" tell). Rather than rewrite 100+ class sites, we override
+   those three palettes at the theme level:
+     • indigo + violet  → pine-green ramp   (#2F5D50 base / #5FB39A bright)
+     • fuchsia          → clay ramp         (#C56A4E base / #E6926B bright)
+   Result: every `from-fuchsia-500 to-indigo-600` becomes a clay→pine warm
+   gradient, every `bg-indigo-*`/`text-violet-*` becomes pine — with no
+   component edits. Delete this block to fall back to stock Tailwind colors. */
+@theme {
+    --color-indigo-50:  #ECF3F0;
+    --color-indigo-100: #D4E5DE;
+    --color-indigo-200: #B2D0C5;
+    --color-indigo-300: #86B4A5;
+    --color-indigo-400: #579685;
+    --color-indigo-500: #3E7969;
+    --color-indigo-600: #2F5D50;
+    --color-indigo-700: #274B41;
+    --color-indigo-800: #213D36;
+    --color-indigo-900: #1B322C;
+    --color-indigo-950: #10201B;
+
+    --color-violet-50:  #ECF3F0;
+    --color-violet-100: #D4E5DE;
+    --color-violet-200: #B2D0C5;
+    --color-violet-300: #86B4A5;
+    --color-violet-400: #579685;
+    --color-violet-500: #3E7969;
+    --color-violet-600: #2F5D50;
+    --color-violet-700: #274B41;
+    --color-violet-800: #213D36;
+    --color-violet-900: #1B322C;
+    --color-violet-950: #10201B;
+
+    --color-fuchsia-50:  #FAF0EB;
+    --color-fuchsia-100: #F3DBCF;
+    --color-fuchsia-200: #EBC2AF;
+    --color-fuchsia-300: #DE9F86;
+    --color-fuchsia-400: #D2825F;
+    --color-fuchsia-500: #C56A4E;
+    --color-fuchsia-600: #AE5640;
+    --color-fuchsia-700: #904635;
+    --color-fuchsia-800: #74392D;
+    --color-fuchsia-900: #5F2F26;
+    --color-fuchsia-950: #341811;
+}
+
 :root {
-    --radius: 0.625rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.585 0.233 277.1);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --radius: 0.75rem;
+    /* Hand-drawn — light (warm oat paper, pine ink, clay accent) */
+    --background: #EFE8DA;
+    --foreground: #262019;
+    --card: #FBF7EE;
+    --card-foreground: #262019;
+    --popover: #FBF7EE;
+    --popover-foreground: #262019;
+    --primary: #2F5D50;
+    --primary-foreground: #FBF7EE;
+    --secondary: #E7DCC8;
+    --secondary-foreground: #33291F;
+    --muted: #E7DCC8;
+    --muted-foreground: #6E6455;
+    --accent: #EFE0D6;
+    --accent-foreground: #3A2C22;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.585 0.233 277.1);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --border: #E1D8C6;
+    --input: #E1D8C6;
+    --ring: #2F5D50;
+    /* warm accent — clay (the second brand colour) */
+    --gold: #C56A4E;
+    --gold-foreground: #FBF7EE;
+    --clay: #C56A4E;
+    --clay-foreground: #FBF7EE;
+    --chart-1: #2F5D50;
+    --chart-2: #C56A4E;
+    --chart-3: #B58F35;
+    --chart-4: #4C6E7B;
+    --chart-5: #9B5B3E;
+    --sidebar: #FBF7EE;
+    --sidebar-foreground: #262019;
+    --sidebar-primary: #2F5D50;
+    --sidebar-primary-foreground: #FBF7EE;
+    --sidebar-accent: #EFE0D6;
+    --sidebar-accent-foreground: #3A2C22;
+    --sidebar-border: #E1D8C6;
+    --sidebar-ring: #2F5D50;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.585 0.233 277.1);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /* Hand-drawn — dark (deep pine-charcoal, brightened pine, warm clay) */
+    --background: #141A17;
+    --foreground: #EAF1EC;
+    --card: #1E2621;
+    --card-foreground: #EAF1EC;
+    --popover: #1E2621;
+    --popover-foreground: #EAF1EC;
+    --primary: #5FB39A;
+    --primary-foreground: #0F1A15;
+    --secondary: #26302A;
+    --secondary-foreground: #EAF1EC;
+    --muted: #26302A;
+    --muted-foreground: #9FB2A8;
+    --accent: #2C2620;
+    --accent-foreground: #F0E4DA;
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.585 0.233 277.1);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --border: #2C3833;
+    --input: #2C3833;
+    --ring: #5FB39A;
+    --gold: #E6926B;
+    --gold-foreground: #1A1206;
+    --clay: #E6926B;
+    --clay-foreground: #1A1206;
+    --chart-1: #5FB39A;
+    --chart-2: #E6926B;
+    --chart-3: #D4B45C;
+    --chart-4: #7FA9B6;
+    --chart-5: #C98462;
+    --sidebar: #19201C;
+    --sidebar-foreground: #EAF1EC;
+    --sidebar-primary: #5FB39A;
+    --sidebar-primary-foreground: #0F1A15;
+    --sidebar-accent: #2C2620;
+    --sidebar-accent-foreground: #F0E4DA;
+    --sidebar-border: #2C3833;
+    --sidebar-ring: #5FB39A;
 }
 
 @layer base {
@@ -499,17 +616,17 @@ html.lenis, html.lenis body { height: auto; }
     }
   body {
     @apply bg-background text-foreground;
-    
+
     overflow-x: clip;
-    
-    background-color: #0e0e13;
+
+    background-color: var(--background);
     background-image:
-      radial-gradient(60rem 42rem at 50% -10%, rgba(99, 102, 241, 0.13), transparent 62%),
-      radial-gradient(42rem 32rem at 100% 0%, rgba(139, 92, 246, 0.07), transparent 60%);
+      radial-gradient(60rem 42rem at 50% -12%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 62%),
+      radial-gradient(42rem 32rem at 100% 0%, color-mix(in srgb, var(--clay) 7%, transparent), transparent 60%);
     background-attachment: fixed;
     }
 
-  
+
   :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;

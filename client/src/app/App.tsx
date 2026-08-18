@@ -7,6 +7,7 @@ import Lenis from 'lenis';
 import Navbar from '@/shared/components/layout/Navbar';
 import ErrorBoundary from '@/shared/components/layout/ErrorBoundary';
 import { Toaster } from 'sonner'
+import { useTheme } from '@/shared/lib/theme';
 
 const Home = lazy(() => import('@/pages/marketing/Home'));
 const Pricing = lazy(() => import('@/pages/marketing/Pricing'));
@@ -31,6 +32,7 @@ const RouteFallback = () => (
 const App  = () => {
 
   const { pathname } = useLocation()
+  const { theme } = useTheme()
 
   const hideNavbar=pathname.startsWith('/projects/') && pathname !== '/projects'
                    || pathname.startsWith('/view/')
@@ -69,7 +71,7 @@ const App  = () => {
   return (
     <MotionConfig reducedMotion="user">
     <div>
-    <Toaster position="top-center" richColors closeButton theme="dark" />
+    <Toaster position="top-center" richColors closeButton theme={theme} />
       <ErrorBoundary>
       {!hideNavbar && <Navbar />}
       <Suspense fallback={<RouteFallback />}>

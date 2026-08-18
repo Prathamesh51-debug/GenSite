@@ -1,47 +1,42 @@
 import api from '@/shared/api/axios';
 import { authClient } from '@/shared/api/auth-client';
 import { useCredits } from '@/features/billing/hooks/use-credits';
-import {
-  ArrowRightIcon, Loader2Icon, SparklesIcon, ZapIcon, PaletteIcon, RocketIcon,
-  MessageSquareIcon, GlobeIcon, CodeIcon, ShieldCheckIcon, CheckIcon,
-} from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRightIcon, Loader2Icon, CheckIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  motion, useMotionValue, useReducedMotion, useScroll, useTransform,
-  type MotionValue, type Variants,
-} from 'framer-motion';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import Footer from '@/shared/components/layout/Footer';
 import Seo from '@/shared/components/layout/Seo';
+import { SketchUnderline, SketchTick, Sparkle } from '@/shared/components/ui/HandDrawn';
+
+const PENDING_KEY = 'gensite:pendingPrompt';
+
+const cyclingWords = ['a portfolio', 'a café site', 'a landing page', 'a storefront', 'an event page'];
 
 const examplePrompts = [
-  'A sleek portfolio for a photographer',
-  'Landing page for a SaaS startup',
-  'An elegant restaurant website',
-  'A modern store for a coffee brand',
+  'A café with a menu & story',
+  'A photographer’s portfolio',
+  'A store for a coffee brand',
 ];
 
-const stats = [
-  { value: 'Multi-page', label: 'Sites from one prompt' },
-  { value: 'Live', label: 'Preview as it builds' },
-  { value: 'Tailwind', label: 'Clean, exportable code' },
-  { value: '1-click', label: 'Publish & share' },
+// The real generation pipeline, in warm words. Each step is honest about what the
+// server does (see server/src/generation/orchestrator) with the mechanism as a tag.
+const buildSteps = [
+  { tx: 'Charge 5/20 credits', tag: 'atomic' },
+  { tx: 'Grow your prompt into a brief', tag: 'brief' },
+  { tx: 'Pick the right engine for the job', tag: 'auto' },
+  { tx: 'Write the whole page live', tag: 'streamed' },
+  { tx: 'Double-check nothing got cut off', tag: 'retry' },
+  { tx: 'Drop in real photos', tag: 'pexels' },
+  { tx: 'Save a version you can roll back to', tag: 'settled' },
 ];
 
-const steps = [
-  { no: '01', icon: MessageSquareIcon, title: 'Describe it', desc: 'Write a sentence about the site you want. No design or code skills needed.' },
-  { no: '02', icon: SparklesIcon, title: 'AI builds it', desc: 'Our model generates a complete, responsive site styled with Tailwind in seconds.' },
-  { no: '03', icon: GlobeIcon, title: 'Refine & publish', desc: 'Tweak with follow-up prompts, then ship it live with a single click.' },
-];
-
-const features = [
-  { icon: ZapIcon, title: 'Built in seconds', desc: 'Go from idea to a working site faster than you can open a code editor.' },
-  { icon: PaletteIcon, title: 'Beautifully styled', desc: 'Modern, responsive layouts crafted with Tailwind CSS out of the box.' },
-  { icon: CodeIcon, title: 'Clean, real code', desc: 'Production-ready HTML you can preview, edit and export — no lock-in.' },
-  { icon: RocketIcon, title: 'One-click publish', desc: 'Share a live, shareable URL the moment your site is ready.' },
-  { icon: MessageSquareIcon, title: 'Iterate by chat', desc: 'Refine any detail with natural-language follow-ups and version history.' },
-  { icon: ShieldCheckIcon, title: 'Secure by default', desc: 'Authentication, billing and your projects, safely handled end to end.' },
+const buildSentences = [
+  'a cosy neighbourhood café with a menu and a story',
+  'a portfolio for a landscape photographer',
+  'a storefront for a vintage sneaker shop',
+  'an event page for a summer music festival',
 ];
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -62,68 +57,26 @@ const Reveal = ({ children, className = '' }: { children: React.ReactNode; class
   </motion.div>
 );
 
-const RevealGroup = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <motion.div className={className} variants={container} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}>
-    {children}
-  </motion.div>
-);
-
-const PAGES = [
-  { file: 'gallery.html', x: -292, y: 38, r: -17, z: 10, accent: 'from-fuchsia-400/30', outer: true },
-  { file: 'menu.html', x: -152, y: 14, r: -9, z: 20, accent: 'from-violet-400/30', outer: false },
-  { file: 'index.html', x: 0, y: 0, r: 0, z: 30, accent: 'from-indigo-400/40', outer: false },
-  { file: 'about.html', x: 152, y: 14, r: 9, z: 20, accent: 'from-purple-400/30', outer: false },
-  { file: 'contact.html', x: 292, y: 38, r: 17, z: 10, accent: 'from-sky-400/30', outer: true },
-] as const;
-
-const FanCard = ({ page, f }: { page: (typeof PAGES)[number]; f: MotionValue<number> }) => {
-
-  const x = useTransform(f, (v) => page.x * v);
-  const y = useTransform(f, (v) => page.y * v);
-  const rotate = useTransform(f, (v) => page.r * v);
-
+/* ── Cycling headline word — fixed-width slot so nothing reflows ────────── */
+const CyclingWord = () => {
+  const reduce = useReducedMotion();
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (reduce) return;
+    const id = setInterval(() => setI((v) => (v + 1) % cyclingWords.length), 2200);
+    return () => clearInterval(id);
+  }, [reduce]);
   return (
-    <motion.div
-      style={{ x, y, rotate, zIndex: page.z }}
-      className={`absolute left-1/2 top-0 -ml-[95px] ${page.outer ? 'hidden sm:flex' : 'flex'} h-[240px] w-[190px] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-[#16161d] shadow-[0_18px_40px_-20px_rgba(0,0,0,0.9)] transition-shadow duration-300 hover:shadow-[0_24px_50px_-18px_rgba(129,140,248,0.45)]`}
-    >
-      <div className="h-4 shrink-0 border-b border-zinc-800 bg-[#0d0d12]" />
-      <div className="flex flex-1 flex-col gap-1.5 p-2.5">
-        <div className={`h-8 shrink-0 rounded bg-gradient-to-r ${page.accent} to-transparent`} />
-        <div className="h-1.5 rounded bg-white/10" />
-        <div className="h-1.5 w-3/4 rounded bg-white/10" />
-        <div className="h-1.5 w-1/2 rounded bg-white/10" />
-        <div className="mt-auto h-4 w-2/5 rounded bg-indigo-400/25" />
-      </div>
-      <div className="font-code shrink-0 border-t border-zinc-800 px-2.5 py-1.5 text-[10px] text-gray-500">
-        {page.file}
-      </div>
-    </motion.div>
+    <span className="relative inline-block text-clay align-baseline" style={{ minWidth: '6.4em' }}>
+      <motion.span key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="inline-block">
+        {cyclingWords[i]}
+      </motion.span>
+    </span>
   );
 };
 
-const PageFan = () => {
-  const reduceMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
-
-  const open = useMotionValue(1);
-  const f = reduceMotion ? open : scrollYProgress;
-
-  return (
-    <div ref={ref} className="relative mx-auto mt-6 h-[170px] w-full max-w-[640px] sm:h-[220px] md:h-[260px] lg:h-[300px]" aria-hidden="true">
-      {}
-      <div className="absolute inset-0 origin-top scale-[0.58] sm:scale-[0.72] md:scale-[0.85] lg:scale-100">
-        {PAGES.map((page) => (
-          <FanCard key={page.file} page={page} f={f} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const PromptForm = () => {
+/* ── Hand-drawn prompt pill (the real generate form) ───────────────────── */
+const PromptPill = () => {
   const { data: session } = authClient.useSession();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -136,26 +89,45 @@ const PromptForm = () => {
     api.get('/api/user/models').then(({ data }) => setTiers(data.models)).catch(() => {});
   }, []);
   const activeTier = tiers.find((t) => t.id === tier);
-  const cost = activeTier?.credits ?? (tier === 'premium' ? 15 : 5);
+  const cost = activeTier?.credits ?? (tier === 'premium' ? 20 : 5);
 
   const insufficient = credits !== null && credits < cost;
-
   const creditsPending = !!session?.user && credits === null;
+
+  // Sign-in handoff: if the visitor typed an idea before signing in, we stashed it.
+  // On return, pre-fill so they just hit Generate (no surprise credit charge).
+  useEffect(() => {
+    if (!session?.user) return;
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(PENDING_KEY);
+    try {
+      const saved = JSON.parse(raw) as { prompt?: string; tier?: 'free' | 'premium' };
+      if (saved.prompt) {
+        setInput(saved.prompt);
+        if (saved.tier) setTier(saved.tier);
+        toast('Welcome back — hit Generate to build your site.');
+      }
+    } catch { /* ignore malformed */ }
+  }, [session?.user]);
 
   const onSubmitHandler = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session?.user) return toast.error('Please sign in to create a project');
-    if (!input.trim()) return toast.error('Please enter a message');
+    if (!input.trim()) return toast.error('Describe the site you want first.');
+    if (!session?.user) {
+      // Stash the idea and send them to sign in; they resume right here afterwards.
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ prompt: input, tier }));
+      toast('Sign in to start building — we saved your idea.');
+      return navigate('/auth/signin');
+    }
     if (insufficient) { toast.error(`You need at least ${cost} credits to create a project.`); return navigate('/pricing'); }
 
     setLoading(true);
-
     const slowTimer = window.setTimeout(() => {
       toast('Waking the server… the first request can take up to a minute.', { id: 'cold-start', duration: 15000 });
     }, 5000);
     try {
       const { data } = await api.post('/api/user/project', { initial_prompt: input, model: tier });
-
       navigate(`/projects/${data.projectId}`, { state: { autostart: true } });
     } catch (error: any) {
       setLoading(false);
@@ -167,88 +139,161 @@ const PromptForm = () => {
   };
 
   return (
-    <>
-      <motion.form
-        variants={fadeUp}
+    <motion.div variants={fadeUp} className="relative w-full max-w-[480px]">
+      <form
         onSubmit={onSubmitHandler}
-        className="relative w-full bg-[#16161c]/40 backdrop-blur-2xl border border-white/10 rounded-[24px] p-5 mt-10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all duration-300 group"
+        className="relative bg-card ink-border rounded-organic shadow-sticker tilt-left px-5 pt-6 pb-5"
       >
-        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
+        {/* doodle sparkle in the corner */}
+        <Sparkle className="absolute -top-3 -right-2 size-6 text-clay rotate-12" />
 
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              if (input.trim() && !loading && !insufficient && !creditsPending) e.currentTarget.form?.requestSubmit();
-            }
-          }}
-          className="bg-transparent outline-none text-gray-100 resize-none w-full placeholder:text-gray-500 text-[15px] relative z-10 leading-relaxed"
-          rows={3}
-          maxLength={2000}
-          aria-label="Describe the website you want to build"
-          placeholder="Describe the website you want — e.g. a sleek landing page for a coffee brand with a menu and contact section"
-          required
-        />
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5 mt-2 relative z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            <div role="group" aria-label="Quality tier" className="inline-flex items-center rounded-lg bg-white/5 border border-white/10 p-0.5">
-              {(['free', 'premium'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTier(t)}
-                  disabled={loading}
-                  aria-pressed={tier === t}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${tier === t ? 'bg-indigo-500/30 text-white shadow-[0_0_10px_rgba(99,102,241,0.25)]' : 'text-gray-400 hover:text-white'}`}
-                >
-                  {t === 'free' ? 'Free' : 'Premium'}
-                </button>
-              ))}
-            </div>
-            {insufficient ? (
-              <button type="button" onClick={() => navigate('/pricing')} className="hidden sm:flex items-center gap-1 text-xs font-medium text-amber-300/90 hover:text-amber-200 transition-colors">
-                Need {cost} credits
-              </button>
-            ) : (
-              <span className="hidden sm:inline text-xs text-gray-500">· {cost} credits</span>
-            )}
+        <label htmlFor="home-prompt" className="font-serif-display italic text-[15px] text-primary relative inline-block">
+          Tell me what to build
+          <SketchUnderline className="text-clay" />
+        </label>
+
+        <div className="relative mt-4">
+          <textarea
+            id="home-prompt"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                if (input.trim() && !loading && !creditsPending) e.currentTarget.form?.requestSubmit();
+              }
+            }}
+            className="w-full bg-transparent outline-none resize-none text-[15.5px] leading-relaxed text-foreground placeholder:text-muted-foreground/80"
+            rows={3}
+            maxLength={2000}
+            aria-label="Describe the website you want to build"
+            placeholder="a cosy café with a menu, a story, and a way to find us…"
+            required
+          />
+          {/* pine wavy underline under the field — no box */}
+          <div className="relative h-0">
+            <SketchUnderline className="text-primary/70" style={{ bottom: '2px' }} />
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6">
+          <div role="group" aria-label="Quality tier" className="inline-flex items-center rounded-organic-sm border border-border bg-secondary/60 p-0.5">
+            {(['free', 'premium'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTier(t)}
+                disabled={loading}
+                aria-pressed={tier === t}
+                className={`rounded-[10px] px-3.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${tier === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {t === 'free' ? 'Free' : 'Premium'}
+              </button>
+            ))}
+          </div>
+          <span className="font-serif-display italic text-xs text-muted-foreground hidden sm:inline">{cost} credits</span>
+
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:from-[#6d28d9] hover:to-[#7c3aed] disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] border border-white/10"
-            disabled={loading || insufficient || creditsPending}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="ml-auto flex items-center gap-2 bg-primary text-primary-foreground rounded-organic-sm shadow-sticker-strong tilt-right px-5 py-2.5 font-semibold text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={loading || creditsPending}
           >
-            {!loading ? (
-              <>Create with AI <ArrowRightIcon className="size-4" /></>
-            ) : (
-              <>Creating <Loader2Icon className="animate-spin size-4 text-white" /></>
-            )}
+            {!loading ? (<>Generate <ArrowRightIcon className="size-4" /></>) : (<>Building <Loader2Icon className="animate-spin size-4" /></>)}
           </motion.button>
         </div>
-        {activeTier && (
-          <p className="mt-2.5 text-[11px] text-gray-500 relative z-10">
-            <span className="text-gray-400">{activeTier.description}</span>
-          </p>
-        )}
-      </motion.form>
+      </form>
 
-      <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 mt-8 w-full max-w-[500px]">
-        <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Try:</span>
+      <div className="flex flex-wrap items-center gap-2.5 mt-5">
+        <span className="font-serif-display italic text-xs text-muted-foreground">try —</span>
         {examplePrompts.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => setInput(prompt)}
-            className="text-xs text-gray-300 bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:border-indigo-400/60 hover:bg-white/10 hover:text-white hover:shadow-[0_0_15px_rgba(124,58,237,0.2)] transition-all duration-300"
+            className="text-xs text-foreground/80 bg-card border border-border rounded-organic-sm px-3 py-1.5 hover:border-primary/50 hover:text-primary transition-colors"
           >
             {prompt}
           </button>
         ))}
-      </motion.div>
-    </>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── The "build card" — warm, hand-drawn pipeline that ticks itself ─────── */
+const BuildCard = () => {
+  const reduce = useReducedMotion();
+  const [typed, setTyped] = useState(reduce ? buildSentences[0] : '');
+  const [active, setActive] = useState(reduce ? buildSteps.length : -1);
+  const [done, setDone] = useState(reduce);
+
+  useEffect(() => {
+    if (reduce) return;
+    const timers: number[] = [];
+    let sIndex = 0;
+    const wait = (ms: number) => new Promise<void>((res) => { timers.push(window.setTimeout(res, ms)); });
+
+    let cancelled = false;
+    const run = async () => {
+      while (!cancelled) {
+        const sentence = buildSentences[sIndex % buildSentences.length];
+        setDone(false);
+        setActive(-1);
+        setTyped('');
+        // type it out
+        for (let c = 0; c <= sentence.length && !cancelled; c++) {
+          setTyped(sentence.slice(0, c));
+          await wait(26);
+        }
+        await wait(500);
+        // tick each step
+        for (let s = 0; s < buildSteps.length && !cancelled; s++) {
+          setActive(s);
+          await wait(520);
+        }
+        if (cancelled) break;
+        setDone(true);
+        await wait(2800);
+        sIndex++;
+      }
+    };
+    run();
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+  }, [reduce]);
+
+  return (
+    <div className="relative mx-auto w-full max-w-[660px] bg-card ink-border rounded-organic-lg shadow-sticker tilt-right px-6 py-7 sm:px-8 sm:py-8">
+      <p className="font-serif-display italic text-sm text-muted-foreground">you type…</p>
+      <p className="relative mt-2 text-lg sm:text-xl font-medium text-foreground leading-snug inline-block">
+        <span>{typed}</span>
+        {!done && !reduce && <span className="inline-block w-0.5 h-5 bg-primary align-middle ml-0.5 animate-pulse" />}
+        <SketchUnderline className="text-clay" />
+      </p>
+
+      <div className="mt-7 grid gap-1.5">
+        {buildSteps.map((step, idx) => {
+          const on = idx <= active;
+          return (
+            <div key={step.tx} className={`flex items-center gap-3 py-1 transition-opacity duration-300 ${on ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`relative grid place-items-center size-6 shrink-0 rounded-[7px] border-2 ${on ? 'border-primary text-primary' : 'border-border text-transparent'}`}>
+                {on && <SketchTick className="size-4" />}
+              </span>
+              <span className="text-[15px] text-foreground">{step.tx}</span>
+              <span className="font-code text-[11px] text-muted-foreground ml-auto shrink-0">{step.tag}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <motion.p
+        animate={{ opacity: done ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+        className="mt-6 font-serif-display italic text-[15px] text-primary"
+      >
+        🎉 your site is ready — built in 4.2s
+      </motion.p>
+    </div>
   );
 };
 
@@ -257,135 +302,84 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="text-white text-sm">
+    <div className="text-sm text-foreground overflow-x-clip">
       <Seo path="/" />
-      <section className="relative flex flex-col items-center px-4 md:px-16 lg:px-24 xl:px-32">
 
-        {}
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section className="relative px-4 md:px-16 lg:px-24 xl:px-32">
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-grid opacity-50" />
-          <div className="absolute -top-40 left-1/2 h-[34rem] w-[46rem] -translate-x-1/2 rounded-full bg-indigo-600/15 blur-[120px]" />
-          <div className="absolute -right-32 top-20 h-[24rem] w-[24rem] rounded-full bg-fuchsia-600/10 blur-[120px]" />
+          <div className="absolute inset-0 bg-grid opacity-60" />
         </div>
 
         <motion.div
-          className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center text-center mt-12 md:mt-20"
+          className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2 pt-14 md:pt-24 pb-8"
           variants={container}
           initial="hidden"
           animate="show"
         >
-          <motion.button
-            variants={fadeUp}
-            onClick={() => navigate('/pricing')}
-            whileHover={{ y: -2 }}
-            className="group flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-full py-1 pl-1 pr-4 text-sm hover:border-indigo-500/50 hover:bg-white/10 transition-all duration-300 shadow-[0_8px_16px_rgba(0,0,0,0.3)]"
-          >
-            <span className="flex items-center gap-1 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]">
-              NEW
-            </span>
-            <p className="flex items-center gap-2 text-gray-200 text-xs font-medium tracking-wide">
-              <span>Start free — no credit card needed</span>
-              <ArrowRightIcon className="size-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </p>
-          </motion.button>
+          <div>
+            <motion.h1 variants={fadeUp} className="font-display text-[54px] leading-[1.04] md:text-[76px] lg:text-[84px] md:leading-[1.02] font-bold tracking-tight text-foreground">
+              Build <CyclingWord /> from{' '}
+              <span className="relative inline-block whitespace-nowrap text-primary">
+                one sentence
+                <SketchUnderline className="text-primary" />
+              </span>.
+            </motion.h1>
 
-          <motion.h1
-            variants={fadeUp}
-            className="font-display text-[44px] leading-[1.1] md:text-[64px] md:leading-[1.1] mt-7 font-bold text-white tracking-tight"
-          >
-            Turn thoughts into <br className="hidden md:block" />
-            stunning <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400">websites</span>,<br className="hidden md:block" /> instantly.
-          </motion.h1>
+            <motion.p variants={fadeUp} className="mt-8 max-w-md text-[18px] md:text-[19px] leading-relaxed text-muted-foreground">
+              Describe the site you want in plain words. GenSite drafts the copy, writes the page,
+              drops in real photos, and hands you something you can publish — no templates, no blank canvas.
+            </motion.p>
 
-          <motion.p
-            variants={fadeUp}
-            className="text-base md:text-[17px] max-w-md lg:max-w-lg mt-6 text-gray-400 leading-relaxed font-medium"
-          >
-            Describe your idea and watch our AI design, build and publish a beautiful, responsive website — no code required.
-          </motion.p>
+            <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> Start free</span>
+              <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> No credit card</span>
+              <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> ~4s a build</span>
+            </motion.div>
+          </div>
 
-          <PromptForm />
+          <div className="flex justify-center lg:justify-end">
+            <PromptPill />
+          </div>
         </motion.div>
 
-        {}
-        <Reveal className="mt-20 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">One prompt · every page</p>
-          <h2 className="font-display mt-3 text-2xl md:text-3xl font-bold tracking-tight">Not a page. A whole site.</h2>
-        </Reveal>
-        <PageFan />
-
-        <Reveal className="grid grid-cols-2 md:grid-cols-4 mt-24 w-full max-w-5xl panel shadow-elevated rounded-2xl overflow-hidden divide-x divide-y md:divide-y-0 divide-zinc-800">
-          {stats.map((s) => (
-            <div key={s.label} className="flex flex-col items-center justify-center text-center py-9 px-4">
-              <span className="font-display text-3xl md:text-5xl font-bold bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent">{s.value}</span>
-              <span className="text-xs md:text-sm text-gray-500 mt-2">{s.label}</span>
-            </div>
-          ))}
-        </Reveal>
+        {/* ── Pipeline build card ──────────────────────────────────────── */}
+        <div className="mx-auto w-full max-w-6xl mt-20 md:mt-28">
+          <Reveal className="text-center mb-10">
+            <p className="text-eyebrow">Behind the scenes</p>
+            <h2 className="font-display mt-3 text-[28px] md:text-[42px] leading-[1.12] font-bold tracking-tight text-foreground">
+              Everything that happens the second you hit{' '}
+              <span className="relative inline-block whitespace-nowrap text-clay">
+                generate
+                <SketchUnderline className="text-clay" />
+              </span>.
+            </h2>
+          </Reveal>
+          <Reveal>
+            <BuildCard />
+          </Reveal>
+        </div>
       </section>
 
-      <section className="relative px-4 mt-32 max-w-5xl mx-auto">
-        <Reveal>
-          <p className="text-indigo-400 text-xs font-semibold tracking-[0.2em] uppercase">How it works</p>
-          <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold mt-3 max-w-2xl">From idea to live site in three steps</h2>
-        </Reveal>
-        <RevealGroup className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-14">
-          {steps.map(({ no, icon: Icon, title, desc }) => (
-            <motion.div
-              key={no}
-              variants={fadeUp}
-              className="panel panel-hover relative rounded-2xl p-7 hover:-translate-y-1.5 transition-transform"
-            >
-              <span className="font-display absolute top-5 right-6 text-6xl font-bold text-white/[0.05]">{no}</span>
-              <div className="flex items-center justify-center size-11 rounded-xl border border-zinc-800 bg-zinc-900 mb-5">
-                <Icon className="size-5 text-indigo-300" />
-              </div>
-              <h3 className="text-lg font-semibold">{title}</h3>
-              <p className="text-sm text-gray-400 mt-2 leading-relaxed">{desc}</p>
-            </motion.div>
-          ))}
-        </RevealGroup>
-      </section>
-
-      <section className="relative px-4 mt-32 max-w-6xl mx-auto">
-        <Reveal>
-          <p className="text-indigo-400 text-xs font-semibold tracking-[0.2em] uppercase">Features</p>
-          <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold mt-3">Everything you need to ship</h2>
-          <p className="text-shimmer mt-4 max-w-xl">A complete toolkit that turns a single prompt into a polished, publishable website.</p>
-        </Reveal>
-        <RevealGroup className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-14">
-          {features.map(({ icon: Icon, title, desc }, i) => {
-            const wide = i === 0 || i === 3 || i === 4;
-            const featured = i === 0;
-            return (
-              <motion.div
-                key={title}
-                variants={fadeUp}
-                className={`panel panel-hover group rounded-2xl p-7 hover:-translate-y-1.5 transition-transform ${wide ? 'md:col-span-2' : ''} ${featured ? 'border-indigo-500/40' : ''}`}
-              >
-                <div className={`flex items-center justify-center size-11 rounded-xl border mb-4 transition-transform group-hover:scale-110 ${featured ? 'border-indigo-500/40 bg-indigo-500/10' : 'border-zinc-800 bg-zinc-900'}`}>
-                  <Icon className={`size-5 ${featured ? 'text-violet-300' : 'text-indigo-300'}`} />
-                </div>
-                <h3 className="text-base font-semibold text-white">{title}</h3>
-                <p className="text-sm text-gray-400 mt-1.5 leading-relaxed max-w-md">{desc}</p>
-              </motion.div>
-            );
-          })}
-        </RevealGroup>
-      </section>
-
-      <section className="relative px-4 mt-32 max-w-5xl mx-auto">
-        <Reveal className="panel glow-indigo rounded-3xl px-6 py-16 md:py-20 text-center relative overflow-hidden">
-          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[34rem] h-[34rem] rounded-full bg-indigo-600/15 blur-[120px]" />
+      {/* ── Ready to build (CTA) ────────────────────────────────────────── */}
+      <section className="relative mx-auto mt-24 md:mt-28 max-w-4xl px-4">
+        <Reveal className="relative overflow-hidden rounded-organic-lg bg-card ink-border shadow-sticker tilt-left px-6 py-16 text-center md:py-20">
+          <Sparkle className="absolute top-7 right-9 size-7 text-clay rotate-12" />
           <div className="relative z-10">
-            <h2 className="font-display text-shimmer text-3xl md:text-5xl font-bold">Ready to build your next website?</h2>
-            <p className="text-shimmer mt-4 max-w-lg mx-auto">Join thousands of creators turning ideas into live websites. Your first project is moments away.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+            <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-foreground">
+              Ready to build your{' '}
+              <span className="relative inline-block whitespace-nowrap text-primary">
+                next site
+                <SketchUnderline className="text-clay" />
+              </span>?
+            </h2>
+            <p className="mx-auto mt-6 max-w-lg text-muted-foreground">One sentence is all it takes. Your first project is moments away.</p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => (session?.user ? navigate('/projects') : navigate('/auth/signin'))}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl px-7 py-3 font-semibold shadow-[0_10px_40px_-10px_rgba(99,102,241,0.7)]"
+                className="flex items-center gap-2 rounded-organic-sm bg-primary text-primary-foreground px-7 py-3 font-semibold shadow-sticker-strong tilt-right"
               >
                 Start building free <ArrowRightIcon className="size-4" />
               </motion.button>
@@ -393,15 +387,15 @@ const Home = () => {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => navigate('/pricing')}
-                className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-7 py-3 font-medium hover:border-zinc-700 transition-colors"
+                className="flex items-center gap-2 rounded-organic-sm bg-card border border-border px-7 py-3 font-medium text-foreground hover:border-primary/50 transition-colors"
               >
                 View pricing
               </motion.button>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-gray-500">
-              <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> No credit card required</span>
-              <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> Free starter credits</span>
-              <span className="flex items-center gap-1.5"><CheckIcon className="size-3.5 text-indigo-400" /> Export your code anytime</span>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-serif-display italic text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5 not-italic font-sans"><CheckIcon className="size-3.5 text-primary" /> No credit card required</span>
+              <span className="flex items-center gap-1.5 not-italic font-sans"><CheckIcon className="size-3.5 text-primary" /> Free starter credits</span>
+              <span className="flex items-center gap-1.5 not-italic font-sans"><CheckIcon className="size-3.5 text-primary" /> Export your code anytime</span>
             </div>
           </div>
         </Reveal>

@@ -56,8 +56,8 @@ const Loading = () => {
   return (
     <div className='h-screen flex flex-col'>
       <div className='flex flex-col items-center justify-center gap-3 flex-1' role='status' aria-label='Loading'>
-        <Loader2Icon className='size-7 animate-spin text-indigo-200' />
-        <p className='text-sm text-gray-400'>{msg}</p>
+        <Loader2Icon className='size-7 animate-spin text-primary' />
+        <p className='text-sm text-muted-foreground'>{msg}</p>
       </div>
     </div>
   )

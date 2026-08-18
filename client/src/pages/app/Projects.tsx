@@ -293,14 +293,14 @@ const Projects = () => {
     return (
       <>
         <div className="flex items-center justify-center h-screen">
-          <Loader2Icon className="size-7 animate-spin text-indigo-200" />
+          <Loader2Icon className="size-7 animate-spin text-primary" />
         </div>
       </>
     )
   }
 
   return project ? (
-    <div className='flex flex-col h-screen w-full bg-gray-900 text-white'>
+    <div className='flex flex-col h-screen w-full bg-background text-foreground'>
       {}
         <div className='flex max-sm:flex-col sm:items-center gap-4 px-4 py-2
         no-scrollbar'>
@@ -311,7 +311,7 @@ const Projects = () => {
             onClick={()=>navigate('/')}/>
             <div className='max-w-64 sm:max-w-xs'>
               <p className='text-sm font-medium capitalize truncate'>{project.name}</p>
-              <p className='text-xs text-gray-400 -mt-0.5'>
+              <p className='text-xs text-muted-foreground -mt-0.5'>
                 {isGenerating ? 'Generating…' : project.current_code ? 'Previewing last saved version' : 'Not generated yet'}
               </p>
             </div>
@@ -320,7 +320,7 @@ const Projects = () => {
                 type='button'
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? 'Show chat' : 'Show preview'}
-                className='flex items-center gap-1.5 text-xs font-medium p-1 text-gray-300 hover:text-white transition-colors'
+                className='flex items-center gap-1.5 text-xs font-medium p-1 text-muted-foreground hover:text-foreground transition-colors'
               >
                 {isMenuOpen
                   ? <><MessageSquareIcon className='size-5'/> Chat</>
@@ -329,7 +329,7 @@ const Projects = () => {
             </div>
           </div>
           {}
-          <div className='hidden sm:flex gap-2 bg-gray-950 p-1.5 rounded-md' role='group' aria-label='Preview device'>
+          <div className='hidden sm:flex gap-2 bg-secondary p-1.5 rounded-md' role='group' aria-label='Preview device'>
             {([
               { id: 'phone', Icon: SmartphoneIcon, label: 'Phone' },
               { id: 'tablet', Icon: TabletIcon, label: 'Tablet' },
@@ -342,7 +342,7 @@ const Projects = () => {
                 aria-label={`${label} view`}
                 aria-pressed={device === id}
                 title={`${label} view`}
-                className={`rounded p-1 transition-colors ${device === id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                className={`rounded p-1 transition-colors ${device === id ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-card'}`}
               >
                 <Icon className='size-5' />
               </button>
@@ -351,34 +351,34 @@ const Projects = () => {
           {}
           <div className='flex items-center justify-end gap-3 flex-1 text-xs
           sm:text-sm'>
-            <button onClick={saveProject} disabled={isSaving} className='max-sm:hidden bg-gray-800
-            hover:bg-gray-700 text-white px-3.5 py-1 flex items-center gap-2
-            rounded sm:rounded-sm transition-colors border border-gray-700'>
+            <button onClick={saveProject} disabled={isSaving} className='max-sm:hidden bg-card
+            hover:border-primary/50 text-foreground px-3.5 py-1 flex items-center gap-2
+            rounded sm:rounded-sm transition-colors border border-border'>
               {isSaving ? <Loader2Icon className='animate-spin' size={16}/> :
              <SaveIcon size={16}/>} Save
             </button>
             <Link target='_blank' rel='noopener noreferrer' to={`/preview/${projectId}`} className='flex
             items-center gap-2 px-4 py-1 rounded sm:rounded-sm border
-            border-gray-700 hover:border-gray-500 transition-colors'>
+            border-border hover:border-primary/50 transition-colors'>
              <FullscreenIcon size={16} /> Preview
             </Link>
-            <button onClick={copyCode} className='max-sm:hidden bg-gray-800
-            hover:bg-gray-700 text-white px-3.5 py-1 flex items-center gap-2
-            rounded sm:rounded-sm transition-colors border border-gray-700'>
+            <button onClick={copyCode} className='max-sm:hidden bg-card
+            hover:border-primary/50 text-foreground px-3.5 py-1 flex items-center gap-2
+            rounded sm:rounded-sm transition-colors border border-border'>
               <CopyIcon size={16}/> Copy HTML
             </button>
-            <button onClick={regenerate} disabled={isGenerating} className='max-sm:hidden bg-gray-800
-            hover:bg-gray-700 text-white px-3.5 py-1 flex items-center gap-2
-            rounded sm:rounded-sm transition-colors border border-gray-700 disabled:opacity-60'>
+            <button onClick={regenerate} disabled={isGenerating} className='max-sm:hidden bg-card
+            hover:border-primary/50 text-foreground px-3.5 py-1 flex items-center gap-2
+            rounded sm:rounded-sm transition-colors border border-border disabled:opacity-60'>
               <RefreshCwIcon size={16}/> Regenerate
             </button>
-            <button onClick={downloadCode} className='bg-linear-to-br from-blue-700 to-blue-600
-            hover:from-blue-600 hover:to-blue-500 text-white px-3.5 py-1 flex
+            <button onClick={downloadCode} className='bg-clay text-clay-foreground
+            hover:brightness-105 px-3.5 py-1 flex
             items-center gap-2 rounded sm:rounded-sm transition-colors'>
               <ArrowBigDownDashIcon size={16}/>  Download
             </button>
-            <button onClick={togglePublish} className='bg-linear-to-br from-indigo-700 to-indigo-600
-            hover:from-indigo-600 hover:to-indigo-500 text-white px-3.5 py-1 flex
+            <button onClick={togglePublish} className='bg-primary text-primary-foreground
+            hover:brightness-105 px-3.5 py-1 flex
             items-center gap-2 rounded sm:rounded-sm transition-colors'>
               {project.isPublished ?
               <EyeOffIcon size={16}/> : <EyeIcon size={16}/>}
@@ -406,10 +406,10 @@ const Projects = () => {
   :
   (
     <div className='flex flex-col items-center justify-center gap-5 h-screen text-center px-4'>
-      <p className="text-2xl font-medium text-gray-200">Unable to load project</p>
+      <p className="text-2xl font-medium text-foreground">Unable to load project</p>
       <button
         onClick={() => navigate('/projects')}
-        className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 text-white font-medium hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 smooth-transition"
+        className="px-5 py-2.5 rounded-organic-sm bg-primary text-primary-foreground font-semibold shadow-sticker-strong tilt-right hover:brightness-105 active:scale-95 smooth-transition"
       >
         Back to my projects
       </button>

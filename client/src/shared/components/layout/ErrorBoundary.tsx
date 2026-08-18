@@ -20,14 +20,14 @@ class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 text-center text-white">
-        <h1 className="text-2xl font-semibold">Something went wrong</h1>
-        <p className="max-w-sm text-sm text-gray-400">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 text-center text-foreground">
+        <h1 className="text-2xl font-semibold text-foreground">Something went wrong</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
           An unexpected error occurred. Reloading usually fixes it.
         </p>
         <button
           onClick={() => { this.setState({ hasError: false }); window.location.assign('/') }}
-          className="rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 px-5 py-2.5 font-medium text-white transition active:scale-95 hover:shadow-lg hover:shadow-indigo-500/40"
+          className="rounded-organic-sm bg-primary px-5 py-2.5 font-semibold text-primary-foreground shadow-sticker-strong tilt-right transition active:scale-95 hover:brightness-105"
         >
           Back to home
         </button>

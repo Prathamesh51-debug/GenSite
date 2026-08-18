@@ -104,7 +104,7 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
 
     return (
     <div
-      className={`h-full sm:max-w-sm rounded-xl bg-gray-900 border-gray-800 transition-all ${
+      className={`h-full sm:max-w-sm rounded-xl bg-card border border-border transition-all ${
         isMenuOpen ? 'max-sm:w-0 overflow-hidden' : 'w-full'
       }`}
     >
@@ -125,22 +125,22 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                     className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
                   >
                     {!isUser && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center">
-                        <BotIcon className="size-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                        <BotIcon className="size-5 text-primary-foreground" />
                       </div>
                     )}
                     <div
                       className={`max-w-[80%] p-2 px-4 rounded-2xl shadow-sm text-sm mt-5 leading-relaxed ${
                         isUser
-                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-tr-none'
-                          : 'rounded-tl-none bg-gray-800 text-gray-100'
+                          ? 'bg-primary text-primary-foreground rounded-tr-none'
+                          : 'rounded-tl-none bg-secondary text-foreground'
                       }`}
                     >
                       {msg.content}
                     </div>
                     {isUser && (
-                      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                        <UserIcon className="size-5 text-gray-200" />
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                        <UserIcon className="size-5 text-muted-foreground" />
                       </div>
                     )}
                   </div>
@@ -150,28 +150,28 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                 const ver = message as Version;
                 return (
                     <div key={ver.id} className='w-4/5 mx-auto my-2 p-3
-                    rounded-xl bg-gray-800 text-gray-100 shadow flex flex-col
+                    rounded-xl bg-secondary text-foreground shadow flex flex-col
                     gap-2'>
                         <div className='text-xs font-medium'>
                             Version {versionNumbers.get(ver.id)}
-                            {ver.description ? <span className='text-gray-400 font-normal'> · {ver.description}</span> : null}
+                            {ver.description ? <span className='text-muted-foreground font-normal'> · {ver.description}</span> : null}
                             <br />
-                            <span className='text-gray-500 text-xs font-normal'>
+                            <span className='text-muted-foreground text-xs font-normal'>
                                 {new Date(ver.timestamp).toLocaleString()}
                             </span>
                         </div>
                         <div className='flex items-center justify-between'>
                             {project.current_version_index === ver.id ? (
                                 <button className='px-3 py-1 rounded-md text-xs
-                                bg-gray-700'>Current version</button>
+                                bg-muted text-muted-foreground'>Current version</button>
                             ) : (
                                 <button onClick={()=> handleRollback(ver.id)} className='px-3 py-1 rounded-md text-xs
-                                bg-indigo-500 hover:bg-indigo-600
-                                text-white'>Roll back to this version</button>
+                                bg-primary hover:brightness-105
+                                text-primary-foreground'>Roll back to this version</button>
                             )}
                             <Link target='_blank' rel='noopener noreferrer' to={`/preview/${project.id}/${ver.id}`}>
-                            <EyeIcon className='size-6 p-1 bg-gray-700
-                            hover:bg-indigo-500 transition-colors rounded'/>
+                            <EyeIcon className='size-6 p-1 bg-muted text-muted-foreground
+                            hover:bg-primary hover:text-primary-foreground transition-colors rounded'/>
                             </Link>
                         </div>
 
@@ -181,19 +181,18 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
             })}
             {isGenerating &&(
                 <div className='flex items-start gap-3 justify-start'>
-                    <div className='w-8 h-8 rounded-full bg-linear-to-br
-                    from-indigo-600 to-indigo-700 flex items-center justify-center'>
-                        <BotIcon className='size-5 text-white'/>
+                    <div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center'>
+                        <BotIcon className='size-5 text-primary-foreground'/>
                     </div>
 
                     <div className='flex gap-1.5 h-full items-end'>
                         <span className='size-2 rounded-full animate-bounce
-                        bg-gray-600' style={{animationDelay:'0s'}}/>
+                        bg-muted-foreground/50' style={{animationDelay:'0s'}}/>
                         <span className='size-2 rounded-full animate-bounce
-                        bg-gray-600' style={{animationDelay:'0.2s'}}/>
+                        bg-muted-foreground/50' style={{animationDelay:'0.2s'}}/>
                         <span className='size-2 rounded-full animate-bounce
-                        bg-gray-600' style={{animationDelay:'0.4s'}}/>
-                        
+                        bg-muted-foreground/50' style={{animationDelay:'0.4s'}}/>
+
                     </div>
 
                 </div>
@@ -206,9 +205,9 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
         <form onSubmit={handleRevisions} className='m-3 relative'>
             <div className='flex items-center justify-between mb-1.5 px-1'>
               {insufficient ? (
-                <Link to='/pricing' className='text-[11px] font-medium text-amber-300/90 hover:text-amber-200'>Need 5 credits — get more</Link>
+                <Link to='/pricing' className='text-[11px] font-medium text-amber-500 hover:text-amber-400'>Low on credits — top up</Link>
               ) : (
-                <span className='text-[11px] text-gray-500'>Each change costs 5 credits</span>
+                <span className='text-[11px] text-muted-foreground'>Each change costs 5/20 credits</span>
               )}
             </div>
             <div className='flex items-center gap-2'>
@@ -216,17 +215,15 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                 maxLength={2000}
                 aria-label='Describe your website or request changes'
                 onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey && !e.nativeEvent.isComposing){ e.preventDefault(); if(input.trim() && !isGenerating && !insufficient && !creditsLoading) e.currentTarget.form?.requestSubmit(); } }}
-                placeholder='Describe your website or request
-                changes... (Enter to send, Shift+Enter for a new line)' className='flex-1 p-3 rounded-xl resize-none text-sm
-                outline-none ring ring-gray-700 focus:ring-indigo-500 bg-gray-800
-                text-gray-100 placeholder-gray-400 transition-all' disabled={isGenerating} />
+                placeholder='Describe a change… (Enter to send, Shift+Enter for a new line)' className='flex-1 p-3 rounded-xl resize-none text-sm
+                outline-none ring-1 ring-border focus:ring-2 focus:ring-primary bg-secondary
+                text-foreground placeholder:text-muted-foreground transition-all' disabled={isGenerating} />
                 <button disabled={isGenerating || !input.trim() || insufficient || creditsLoading} className='absolute bottom-2.5 right-2.5 rounded-full
-                bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600
-                hover:to-indigo-700 text-white transition-colors
+                bg-primary hover:brightness-105 text-primary-foreground transition-colors
                 disabled:opacity-60'>
                     {isGenerating
-                        ? <Loader2Icon className='size-7 p-1.5 animate-spin text-white'/>
-                        : <SendIcon className='size-7 p-1.5 text-white'/>
+                        ? <Loader2Icon className='size-7 p-1.5 animate-spin'/>
+                        : <SendIcon className='size-7 p-1.5'/>
                     }
                 </button>
             </div>

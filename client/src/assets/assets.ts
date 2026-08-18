@@ -159,7 +159,7 @@ export const dummyVersion = [
 export const iframeScript = `
         <style id="ai-preview-style">
         .ai-selected-element {
-            outline: 2px solid #6366f1 !important;
+            outline: 2px solid #2F5D50 !important;
         }
         </style>
         <script id="ai-preview-script">
@@ -195,6 +195,8 @@ export const iframeScript = `
             }
 
             selectedElement = target;
+            const cleanOuterHTML = selectedElement.outerHTML;
+            const cleanClassName = selectedElement.className;
             selectedElement.classList.add('ai-selected-element');
             selectedElement.setAttribute('data-ai-selected', 'true');
 
@@ -204,8 +206,9 @@ export const iframeScript = `
                 type: 'ELEMENT_SELECTED',
                 payload: {
                 tagName: selectedElement.tagName,
-                className: selectedElement.className,
+                className: cleanClassName,
                 text: selectedElement.innerText,
+                outerHTML: cleanOuterHTML,
                 styles: {
                     padding: computedStyle.padding,
                     margin: computedStyle.margin,

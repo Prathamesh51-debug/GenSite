@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authClient } from '@/shared/api/auth-client';
 import { UserButton } from '@daveyplate/better-auth-ui'
-import { MenuIcon, XIcon } from 'lucide-react';
+import { MenuIcon, XIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useCredits } from '@/features/billing/hooks/use-credits';
+import { useTheme } from '@/shared/lib/theme';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -11,6 +12,19 @@ const navLinks = [
   { label: 'Community', to: '/community' },
   { label: 'Pricing', to: '/pricing' },
 ];
+
+const ThemeToggle = ({ className = '' }: { className?: string }) => {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={`grid place-items-center size-9 rounded-full border border-border bg-card text-foreground/80 hover:text-primary hover:border-primary/50 smooth-transition ${className}`}
+    >
+      {theme === 'dark' ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+    </button>
+  );
+};
 
 const Navbar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -60,36 +74,38 @@ const Navbar = () => {
 
   return (
     <>
-    <nav className={`sticky top-0 z-50 flex items-center justify-between w-full py-4 px-4 md:px-16 lg:px-24 xl:px-32 text-white smooth-transition ${
+    <nav className={`sticky top-0 z-50 flex items-center justify-between w-full py-3.5 px-4 md:px-16 lg:px-24 xl:px-32 text-foreground smooth-transition ${
         scrolled
-          ? 'bg-[#0e0e13]/80 backdrop-blur-xl border-b border-zinc-800'
+          ? 'bg-card/80 backdrop-blur-xl border-b border-border'
           : 'bg-transparent border-b border-transparent'
       }`}>
-        <Link to='/' className="group flex items-center gap-2 smooth-transition">
-              <img src="/logo.png" alt="GenSite" className='h-5 sm:h-7 group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(129,140,248,0.6)] smooth-transition'/>
-          </Link>
+        <Link to='/' className="group flex items-center gap-2.5 smooth-transition">
+          <span className="size-4 rounded-full bg-primary group-hover:scale-110 smooth-transition" />
+          <span className="font-display text-xl font-extrabold tracking-tight text-primary">GenSite</span>
+        </Link>
 
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => {
               const active = link.to === '/' ? pathname === '/' : pathname.startsWith(link.to);
               return (
-                <Link key={link.to} to={link.to} aria-current={active ? 'page' : undefined} className={`relative group smooth-transition ${active ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
+                <Link key={link.to} to={link.to} aria-current={active ? 'page' : undefined} className={`relative group text-[15px] smooth-transition ${active ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
                   <span>{link.label}</span>
-                  <span className={`absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-indigo-400 to-violet-400 smooth-transition ${active ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  <span className={`absolute -bottom-1.5 left-0 h-0.5 rounded-full bg-clay smooth-transition ${active ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                 </Link>
               );
             })}
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle className="max-sm:hidden" />
             {!session?.user ? (
-                <button onClick={()=> navigate('/auth/signin')} className="px-5 py-2 max-sm:text-sm font-medium bg-indigo-600 hover:bg-indigo-500 active:scale-95 smooth-transition rounded-lg animate-scale-in">
+                <button onClick={()=> navigate('/auth/signin')} className="px-5 py-2 max-sm:text-sm font-semibold bg-primary text-primary-foreground rounded-organic-sm shadow-sticker-strong tilt-right hover:brightness-105 active:scale-95 smooth-transition animate-scale-in">
                 Get started
               </button>
             ) : (
               <>
-              <Link to='/pricing' aria-label={credits == null ? 'View pricing' : `${credits} credits remaining — view pricing`} className='bg-zinc-900 px-4 py-1.5 text-xs sm:text-sm border border-zinc-800 text-gray-300 rounded-md hover:border-zinc-700 hover:text-white smooth-transition animate-scale-in'>
-                Credits: <span className='text-indigo-300 font-semibold'>{credits ?? '—'}</span>
+              <Link to='/pricing' aria-label={credits == null ? 'View pricing' : `${credits} credits remaining — view pricing`} className='bg-card px-4 py-1.5 text-xs sm:text-sm border border-border text-muted-foreground rounded-full hover:border-primary/50 hover:text-foreground smooth-transition animate-scale-in'>
+                Credits: <span className='text-clay font-semibold'>{credits ?? '—'}</span>
               </Link>
               <div className="animate-scale-in animate-delay-200">
                 <UserButton size='icon' />
@@ -110,11 +126,10 @@ const Navbar = () => {
           </div>
         </nav>
 
-        {}
         {menuOpen && (
-          <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Main menu" className="fixed inset-0 z-[100] bg-black/80 text-white backdrop-blur-xl flex flex-col items-center justify-center text-lg gap-8 md:hidden animate-fade-in">
+          <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Main menu" className="fixed inset-0 z-[100] bg-background/95 text-foreground backdrop-blur-xl flex flex-col items-center justify-center text-lg gap-8 md:hidden animate-fade-in">
             {navLinks.map((link) => (
-              <Link key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className="hover:text-indigo-400 smooth-transition">
+              <Link key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className="hover:text-primary smooth-transition">
                 {link.label}
               </Link>
             ))}
@@ -122,23 +137,26 @@ const Navbar = () => {
             {/* Account / credits — so logged-in users can see their balance and sign out from mobile */}
             {session?.user ? (
               <div className="flex items-center gap-4">
-                <Link to="/pricing" onClick={() => setMenuOpen(false)} className="bg-zinc-900 px-4 py-1.5 text-sm border border-zinc-800 text-gray-300 rounded-md">
-                  Credits: <span className="text-indigo-300 font-semibold">{credits ?? '—'}</span>
+                <Link to="/pricing" onClick={() => setMenuOpen(false)} className="bg-card px-4 py-1.5 text-sm border border-border text-muted-foreground rounded-full">
+                  Credits: <span className="text-clay font-semibold">{credits ?? '—'}</span>
                 </Link>
                 <UserButton size="icon" />
               </div>
             ) : (
               <button
                 onClick={() => { setMenuOpen(false); navigate('/auth/signin'); }}
-                className="px-5 py-2 text-base font-medium bg-indigo-600 hover:bg-indigo-500 active:scale-95 smooth-transition rounded-lg"
+                className="px-5 py-2 text-base font-semibold bg-primary text-primary-foreground rounded-organic-sm shadow-sticker-strong tilt-right active:scale-95 smooth-transition"
               >
                 Get started
               </button>
             )}
 
-            <button ref={closeBtnRef} aria-label="Close menu" className="active:scale-90 size-11 p-1 items-center justify-center glass hover:bg-white/10 transition rounded-lg flex mt-4" onClick={() => setMenuOpen(false)} >
-              <XIcon className="size-6" />
-            </button>
+            <div className="flex items-center gap-3 mt-2">
+              <ThemeToggle />
+              <button ref={closeBtnRef} aria-label="Close menu" className="active:scale-90 size-11 p-1 items-center justify-center border border-border bg-card hover:border-primary/50 transition rounded-full flex" onClick={() => setMenuOpen(false)} >
+                <XIcon className="size-6" />
+              </button>
+            </div>
           </div>
         )}
 

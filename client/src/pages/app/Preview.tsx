@@ -52,7 +52,7 @@ const Preview = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2Icon className="size-7 animate-spin text-indigo-200" />
+        <Loader2Icon className="size-7 animate-spin text-primary" />
       </div>
     )
   }
@@ -62,7 +62,7 @@ const Preview = () => {
         <ProjectPreview project={{ current_code: code, files } as Project}
           isGenerating={false} showEditorPanel={false} />
       ) : (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
           Nothing to preview yet.
         </div>
       )}

@@ -62,7 +62,7 @@ const Privacy = () => (
     <LegalSection title="9. Contact">
       <p>
         Questions about your data? Contact{' '}
-        <a className="text-indigo-400 hover:underline" href="mailto:prathameshprasad510@gmail.com">
+        <a className="text-primary hover:underline" href="mailto:prathameshprasad510@gmail.com">
           prathameshprasad510@gmail.com
         </a>.
       </p>

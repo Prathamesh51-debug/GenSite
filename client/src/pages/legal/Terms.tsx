@@ -90,7 +90,7 @@ const Terms = () => (
     <LegalSection title="11. Contact">
       <p>
         Questions? Contact{' '}
-        <a className="text-indigo-400 hover:underline" href="mailto:prathameshprasad510@gmail.com">
+        <a className="text-primary hover:underline" href="mailto:prathameshprasad510@gmail.com">
           prathameshprasad510@gmail.com
         </a>.
       </p>

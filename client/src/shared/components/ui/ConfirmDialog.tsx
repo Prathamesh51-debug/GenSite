@@ -69,23 +69,23 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           onClick={() => close(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-6 text-white shadow-2xl"
+            className="w-full max-w-sm rounded-organic ink-border bg-card p-6 text-foreground shadow-sticker"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold">{state.opts.title ?? 'Are you sure?'}</h2>
-            {state.opts.message && <p className="mt-2 text-sm leading-relaxed text-gray-400">{state.opts.message}</p>}
+            <h2 className="text-lg font-semibold text-foreground">{state.opts.title ?? 'Are you sure?'}</h2>
+            {state.opts.message && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{state.opts.message}</p>}
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => close(false)}
-                className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-white/10"
+                className="rounded-lg px-4 py-2 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               >
                 {state.opts.cancelText ?? 'Cancel'}
               </button>
               <button
                 ref={confirmBtnRef}
                 onClick={() => close(true)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition active:scale-95 ${
-                  state.opts.tone === 'danger' ? 'bg-red-600 hover:bg-red-500' : 'bg-indigo-600 hover:bg-indigo-500'
+                className={`rounded-organic-sm px-4 py-2 text-sm font-semibold transition active:scale-95 ${
+                  state.opts.tone === 'danger' ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-primary hover:brightness-105 text-primary-foreground'
                 }`}
               >
                 {state.opts.confirmText ?? 'Confirm'}

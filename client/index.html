@@ -1,10 +1,21 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0e0e13" />
+    <meta name="theme-color" content="#EFE8DA" />
+    <!-- Apply the saved (or default light) theme before first paint — no flash. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('gensite-theme');
+          var dark = t === 'dark';
+          if (dark) document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
     <title>GenSite — AI Website Builder</title>
     <meta name="description" content="GenSite turns a single prompt into a complete, responsive, publishable website — with AI. Describe your idea and watch it build, live." />
     <link rel="canonical" href="https://ai-website-builder-prathamesh-three-amber.vercel.app/" />
@@ -26,7 +37,7 @@
     <meta name="twitter:description" content="Turn a single prompt into a complete, responsive, publishable website — with AI." />
     <meta name="twitter:image" content="https://ai-website-builder-prathamesh-three-amber.vercel.app/og.png" />
   </head>
-  <body class="bg-black">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
