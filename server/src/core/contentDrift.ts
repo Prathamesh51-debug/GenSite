@@ -2,6 +2,7 @@ export interface ContentDrift {
     textChanged: number;
     linesChanged: number;
     titleChanged: boolean;
+    brandChanged: boolean;
 }
 
 const visibleWords = (html: string): Set<string> => {
@@ -19,6 +20,8 @@ const markupLines = (html: string): string[] =>
 const title = (html: string): string =>
     (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').trim().toLowerCase();
 
+const brand = (html: string): string => title(html).split(/\s[–—|-]\s|:/)[0].trim();
+
 const share = (part: number, whole: number): number => (whole ? Math.round((part / whole) * 100) / 100 : 0);
 
 export const measureContentDrift = (before: string, after: string): ContentDrift => {
@@ -31,5 +34,9 @@ export const measureContentDrift = (before: string, after: string): ContentDrift
         textChanged: share(newWords.filter((w) => !oldWords.has(w)).length, newWords.length),
         linesChanged: share(newLines.filter((l) => !oldLines.has(l)).length, newLines.length),
         titleChanged: title(before) !== title(after),
+        brandChanged: brand(before) !== brand(after),
     };
 };
+
+export const looksLikeDifferentSite = (drift: ContentDrift): boolean =>
+    drift.textChanged >= 0.6 && drift.brandChanged;

@@ -102,6 +102,21 @@ describe('makeRevision', () => {
     expect(m.runtime.releaseProjectLock).toHaveBeenCalledWith('p1', 'lock-1');
   });
 
+  it('refuses a rebuild into another business even when the AI calls it an edit', async () => {
+    m.repo.findOwnedWithHistory.mockResolvedValue(project('premium'));
+    const gym = '<!DOCTYPE html><html><head><title>IronFit Gym</title></head><body><section id="hero"><h1>Train harder with certified coaches</h1></section></body></html>';
+    m.createChatCompletion.mockResolvedValue(reply(`<!-- intent: edit
+- Rebranded as a gym
+-->
+${gym}`));
+
+    await expect(revisionService.makeRevision('u1', 'p1', 'turn this into my gym site')).rejects.toMatchObject({ status: 422 });
+
+    expect(m.credits.refundCharge).toHaveBeenCalledWith('charge-1');
+    expect(m.repo.createVersion).not.toHaveBeenCalled();
+    expect(m.repo.update).not.toHaveBeenCalled();
+  });
+
   it('refunds and keeps the current page when the output is cut off', async () => {
     m.repo.findOwnedWithHistory.mockResolvedValue(project('free'));
     m.createChatCompletion.mockResolvedValue(reply(`<!-- intent: edit\n- x\n-->\n${page('half')}`, 'length'));

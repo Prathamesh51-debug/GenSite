@@ -2,7 +2,7 @@ import { createChatCompletion } from '@/generation/llm.js';
 import { editModel } from '@/generation/models.js';
 import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
 import { parseEditSummary, stripEditSummary, describeChanges, formatEditHistory } from '@/core/editSummary.js';
-import { measureContentDrift } from '@/core/contentDrift.js';
+import { measureContentDrift, looksLikeDifferentSite } from '@/core/contentDrift.js';
 import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { CREDIT_COSTS } from '@/shared/constants.js';
 import { AppError, BadRequestError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError } from '@/shared/AppError.js';
@@ -18,6 +18,12 @@ class FreeCapError extends AppError {
 class NewSiteRequestError extends AppError {
     constructor() { super(422, 'That looks like a new website — start a new project for it. Your credits were refunded.'); }
 }
+
+const refuseNewSite = async (projectId: string, chargeId: string): Promise<never> => {
+    await refundCharge(chargeId);
+    await projectRepository.addMessage(projectId, 'assistant', "That sounds like a brand-new website rather than a change to this one, so I left your site as it is and refunded your credits. Start a new project from your dashboard to build it.");
+    throw new NewSiteRequestError();
+};
 
 export const revisionService = {
     // AI chat revision of a page (5 credits).
@@ -53,11 +59,7 @@ export const revisionService = {
             const raw = response.choices?.[0]?.message?.content;
             const summary = parseEditSummary(raw);
 
-            if (summary.intent === 'new-site') {
-                await refundCharge(chargeId);
-                await projectRepository.addMessage(projectId, 'assistant', "That sounds like a brand-new website rather than a change to this one, so I left your site as it is and refunded your credits. Start a new project from your dashboard to build it.");
-                throw new NewSiteRequestError();
-            }
+            if (summary.intent === 'new-site') await refuseNewSite(projectId, chargeId);
 
             const generated = stripEditSummary(extractHtml(raw));
             const truncated = response.choices?.[0]?.finish_reason === 'length';
@@ -73,6 +75,7 @@ export const revisionService = {
 
             const drift = measureContentDrift(sourceHtml, enhanced);
             console.log(`[edit] ${JSON.stringify({ projectId, tier: project.model ?? 'free', model: response?.model ?? null, changes: summary.changes.length, ...drift })}`);
+            if (looksLikeDifferentSite(drift)) await refuseNewSite(projectId, chargeId);
 
             const version = await projectRepository.createVersion({
                 code: enhanced, description: message.slice(0, 60), projectId,

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "broad enhance",
+    "request": "can you enhance the design more",
+    "expect": { "intent": "edit", "minChanges": 3 }
+  },
+  {
+    "name": "specific headline",
+    "request": "change the main hero headline to \"Built for what comes next\"",
+    "expect": { "intent": "edit", "maxTextChanged": 0.05 }
+  },
+  {
+    "name": "add a section",
+    "request": "add a short FAQ section with three questions before the footer",
+    "expect": { "intent": "edit", "minChanges": 1 }
+  },
+  {
+    "name": "translate (must not be refused)",
+    "request": "translate all the text on the page into Spanish",
+    "expect": { "intent": "edit" }
+  },
+  {
+    "name": "different website (must be refused)",
+    "request": "make it a website for a gym instead",
+    "expect": { "intent": "new-site" }
+  }
+]

@@ -3,3 +3,6 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# Eval run outputs (generated pages and reports)
+/evals/out

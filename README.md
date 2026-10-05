@@ -86,7 +86,7 @@ Same prompt (*"a software developer portfolio"*), two tiers. The **free** model 
 - 🧠 **Prompt-to-website generation** — describe it, get a full standalone HTML + Tailwind page
 - ✍️ **Automatic prompt enhancement** — vague prompts are expanded into a prescriptive design brief (brand, palette, fonts, sections) before generation, so even a one-liner produces a premium result. Your own words always take priority over the brief.
 - 🎚️ **Free & Premium tiers** — a fast free model for most sites, or a premium model for the most polished, consistent results. If a premium request is served by a free model, the premium surcharge is **automatically refunded**.
-- 🖼️ **Topic-matching images** — real, on-subject stock photography via **Pexels**, added in a post-generation pass (graceful fallback when no key is configured — generation never breaks).
+- 🖼️ **Topic-matching images** — real, on-subject stock photography via **Pexels**, added in a post-generation pass, with a stable placeholder photo whenever there's no match, so images never break.
 - 🔗 **Hardened in-page navigation** — every nav link is a smooth-scroll anchor to a section that actually exists (no dead `#` links).
 - 💬 **Conversational revisions** — refine the page with natural-language follow-ups
 - 🖱️ **In-place element editing** — click any section in the preview and edit just that piece
@@ -260,7 +260,7 @@ npm run dev                     # app on http://localhost:5173
 | `TRUSTED_ORIGINS` | Comma-separated allowed origins (your frontend URL) — drives CORS **and** the CSRF check |
 | `AI_API_KEY` | OpenRouter API key |
 | `GEN_MODELS` / `GEN_MODEL` / `PREMIUM_MODEL` / `EDIT_MODEL` / `ENHANCE_MODEL` | _(optional)_ override the free model list / defaults / premium / edit / enhancer models |
-| `PEXELS_API_KEY` | _(optional)_ enable topic-matching stock images; unset ⇒ generation keeps its fallback image URLs |
+| `PEXELS_API_KEY` | _(optional)_ enable topic-matching stock images; unset (or no match) ⇒ stable placeholder photos from picsum.photos, so images never break |
 | `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` | Stripe keys (billing) |
 | `RESEND_API_KEY` · `EMAIL_FROM` | _(optional)_ enable verification emails; unset ⇒ links logged to console |
 | `LANGFUSE_SECRET_KEY` · `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_BASEURL` | _(optional)_ LLM tracing |
@@ -297,7 +297,8 @@ Failed builds are refunded automatically, and a premium build that falls back to
 npm run dev        # tsx watch
 npm run build      # prisma generate && tsc && tsc-alias
 npm start          # node dist/server.js
-npm test           # Vitest (credit ledger, locks, Stripe billing, sanitizer, HTML helpers)
+npm test           # Vitest (credit ledger, locks, Stripe billing, AI fallback chain, sanitizer, HTML helpers)
+npm run eval -- --tier free --runs 1   # real-model edit evals: pass/fail, time, cost (a few cents; not run in CI)
 npx tsc --noEmit   # typecheck
 
 # client
@@ -307,7 +308,7 @@ npm run lint       # ESLint
 npx tsc --noEmit -p tsconfig.app.json
 ```
 
-CI (`.github/workflows/ci.yml`) is a single job: server typecheck + tests and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
+CI (`.github/workflows/ci.yml`) is a single job: server typecheck (app + evals) + tests and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
 
 ## 🚢 Deployment
 

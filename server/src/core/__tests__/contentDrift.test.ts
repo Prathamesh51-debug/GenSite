@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { measureContentDrift } from '../contentDrift.js';
+import { measureContentDrift, looksLikeDifferentSite } from '../contentDrift.js';
 
 const site = (title: string, cls: string, body: string) =>
   `<!DOCTYPE html><html><head><title>${title}</title><script>const menu = 1;</script></head><body>
@@ -11,7 +11,7 @@ const bakery = site('Sweet Crumbs Bakery', 'bg-white p-8', 'Fresh bread baked ev
 
 describe('measureContentDrift', () => {
   it('scores an unchanged page as zero drift', () => {
-    expect(measureContentDrift(bakery, bakery)).toEqual({ textChanged: 0, linesChanged: 0, titleChanged: false });
+    expect(measureContentDrift(bakery, bakery)).toEqual({ textChanged: 0, linesChanged: 0, titleChanged: false, brandChanged: false });
   });
 
   it('a restyle changes markup but barely touches the text', () => {
@@ -34,5 +34,29 @@ describe('measureContentDrift', () => {
   it('ignores script contents and HTML entities when comparing text', () => {
     const withScript = bakery.replace('const menu = 1;', 'const menu = 2; trackVisitors();').replace('Our menu', 'Our&nbsp;menu');
     expect(measureContentDrift(bakery, withScript).textChanged).toBe(0);
+  });
+});
+
+describe('looksLikeDifferentSite', () => {
+  const portfolio = (title: string, body: string) =>
+    `<!DOCTYPE html><html><head><title>${title}</title></head><body><section id="hero"><h1>${body}</h1></section></body></html>`;
+  const original = portfolio('Jane Doe – Software Developer Portfolio', 'I build fast reliable web applications with React and Node');
+
+  it('flags a rebuild into another business: most text and the brand replaced', () => {
+    const gym = portfolio('IronFit Gym – Premium Fitness Center', 'Train harder with certified coaches every single day');
+    expect(looksLikeDifferentSite(measureContentDrift(original, gym))).toBe(true);
+  });
+
+  it('allows a translation: most text replaced but the brand kept', () => {
+    const spanish = portfolio('Jane Doe – Portafolio de Desarrolladora de Software', 'Creo aplicaciones rápidas y fiables para empresas de todo el mundo');
+    const drift = measureContentDrift(original, spanish);
+    expect(drift.textChanged).toBeGreaterThan(0.6);
+    expect(drift.brandChanged).toBe(false);
+    expect(looksLikeDifferentSite(drift)).toBe(false);
+  });
+
+  it('allows a simple rename: the brand changes but little else', () => {
+    const renamed = original.replace('Jane Doe', 'Jane Smith');
+    expect(looksLikeDifferentSite(measureContentDrift(original, renamed))).toBe(false);
   });
 });
