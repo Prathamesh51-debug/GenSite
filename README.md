@@ -307,6 +307,7 @@ npm run build      # prisma generate && tsc && tsc-alias
 npm start          # node dist/server.js
 npm test           # Vitest (credit ledger, locks, Stripe billing, AI fallback chain, sanitizer, HTML helpers)
 npm run eval -- --tier free --runs 1   # real-model edit evals: pass/fail, time, cost (a few cents; not run in CI)
+npm run test:integration               # concurrency + flow tests against a throwaway local Postgres (see below)
 npx tsc --noEmit   # typecheck
 
 # client
@@ -316,7 +317,17 @@ npm run lint       # ESLint
 npx tsc --noEmit -p tsconfig.app.json
 ```
 
-CI (`.github/workflows/ci.yml`) is a single job: server typecheck (app + evals) + tests and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
+CI (`.github/workflows/ci.yml`) is a single job: server typecheck (app + evals + tests), unit tests, **integration tests against a temporary Postgres service**, and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
+
+### Integration tests (real Postgres)
+
+The money and locking guarantees are tested against a real database with real concurrent requests — e.g. 100 simultaneous charges on a 25-credit balance must succeed exactly 5 times (a naive read-then-write version lets 69 through). The suite refuses to run against anything but `localhost`, so it can never touch production.
+
+```bash
+docker run -d --name gensite-test-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gensite_test -p 54329:5432 postgres:16-alpine
+cd server
+INTEGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:54329/gensite_test npm run test:integration
+```
 
 ## 🚢 Deployment
 
