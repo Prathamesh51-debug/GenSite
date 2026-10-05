@@ -1,11 +1,11 @@
 import { createChatCompletion, EDIT_MODEL } from '@/generation/providers/openai.js';
-import { extractHtml, looksLikeHtml } from '@/core/html.js';
-import { chargeCredits, refundCredits } from '@/core/credits.js';
+import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
+import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { storeHtml } from '@/platform/storage/storage.js';
 import { CREDIT_COSTS } from '@/shared/config/constants.js';
-import { ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError, BadRequestError } from '@/shared/http/AppError.js';
+import { AppError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError, BadRequestError } from '@/shared/http/AppError.js';
 import { projectRepository } from '@/modules/project/data/project.repository.js';
-import { editing, pruneVersions } from '@/modules/project/domain/project.runtime.js';
+import { pruneVersions, acquireProjectLock, releaseProjectLock, LOCK_TTL } from '@/modules/project/domain/project.runtime.js';
 import { enhanceImages } from '@/generation/images/imageProvider.js';
 import { EDIT_IMAGE_RULES } from '@/generation/prompts/prompts.js';
 
@@ -31,23 +31,28 @@ const resolveRevisionTarget = (
     return paths.includes('index.html') ? 'index.html' : paths[0];
 };
 
+class FreeCapError extends AppError {
+    constructor() { super(429, 'Free AI capacity is used up for today. Please try again tomorrow or add credits.'); }
+}
+
 export const revisionService = {
     // AI chat revision of a page (5 credits).
     async makeRevision(userId: string, projectId: string, message: string, path?: string) {
-        let charged = false;
-        let locked = false;
+        let chargeId: string | null = null;
+        let lockToken: string | null = null;
         try {
+            const owned = await projectRepository.findOwnedId(projectId, userId);
+            if (!owned) throw new NotFoundError('Project not found');
+
+            lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
+            if (!lockToken) throw new ConflictError('A change is already being applied to this project — please wait.');
+
             const project = await projectRepository.findOwnedWithHistory(projectId, userId);
             if (!project) throw new NotFoundError('Project not found');
 
-            if (editing.has(projectId)) {
-                throw new ConflictError('A change is already being applied to this project — please wait.');
-            }
-            editing.add(projectId);
-            locked = true;
-
-            charged = await chargeCredits(userId, CREDIT_COSTS.revision);
-            if (!charged) throw new InsufficientCreditsError('add more credits to make changes');
+            if (await freeCapReached(userId)) throw new FreeCapError();
+            chargeId = await chargeCredits(userId, CREDIT_COSTS.revision, 'revision');
+            if (!chargeId) throw new InsufficientCreditsError('add more credits to make changes');
 
             await projectRepository.addMessage(projectId, 'user', message);
 
@@ -104,13 +109,13 @@ CRITICAL HARD RULES:
             const truncated = response.choices?.[0]?.finish_reason === 'length';
 
             if (!looksLikeHtml(generated) || truncated) {
-                await refundCredits(userId, CREDIT_COSTS.revision);
-                charged = false;
+                await refundCharge(chargeId);
                 await projectRepository.addMessage(projectId, 'assistant', "I couldn't apply that change reliably, so I kept your current version and refunded your credits. Try rephrasing the request a little more specifically.");
                 throw new UpstreamError('The AI did not return a valid website — your credits were refunded.');
             }
 
-            const enhanced = await enhanceImages(generated).catch(() => generated);
+            let enhanced = await enhanceImages(generated).catch(() => generated);
+            enhanced = tagSectionsIfMissing(enhanced);
 
             const updatedFiles = filesObj ? { ...filesObj, [targetPath]: enhanced } : undefined;
             const indexHtml = updatedFiles ? (updatedFiles['index.html'] ?? enhanced) : enhanced;
@@ -130,32 +135,31 @@ CRITICAL HARD RULES:
                 current_version_index: version.id,
             });
 
+            await settleCharge(chargeId).catch(() => {});
             await pruneVersions(projectId).catch(() => {});
         } catch (err) {
-            if (charged) await refundCredits(userId, CREDIT_COSTS.revision).catch(() => {});
+            if (chargeId) await refundCharge(chargeId).catch(() => {});
             throw err;
         } finally {
-            if (locked) editing.delete(projectId);
+            if (lockToken) await releaseProjectLock(projectId, lockToken).catch(() => {});
         }
     },
 
     // AI-edit a single selected element (2 credits). Returns the new element HTML;
     // the client splices it in and autosaves.
     async editElement(userId: string, projectId: string, html: string, message: string) {
-        let charged = false;
-        let locked = false;
+        let chargeId: string | null = null;
+        let lockToken: string | null = null;
         try {
-            const project = await projectRepository.findOwned(projectId, userId);
-            if (!project) throw new NotFoundError('Project not found');
+            const owned = await projectRepository.findOwnedId(projectId, userId);
+            if (!owned) throw new NotFoundError('Project not found');
 
-            if (editing.has(projectId)) {
-                throw new ConflictError('A change is already being applied to this project — please wait.');
-            }
-            editing.add(projectId);
-            locked = true;
+            lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
+            if (!lockToken) throw new ConflictError('A change is already being applied to this project — please wait.');
 
-            charged = await chargeCredits(userId, CREDIT_COSTS.elementEdit);
-            if (!charged) throw new InsufficientCreditsError('Add more credits to make changes');
+            if (await freeCapReached(userId)) throw new FreeCapError();
+            chargeId = await chargeCredits(userId, CREDIT_COSTS.elementEdit, 'elementEdit');
+            if (!chargeId) throw new InsufficientCreditsError('Add more credits to make changes');
 
             const response = await createChatCompletion({
                 model: EDIT_MODEL,
@@ -181,23 +185,24 @@ ${EDIT_IMAGE_RULES}`
 
             const newHtml = extractHtml(response.choices?.[0]?.message?.content);
             if (!newHtml || !/<[a-z][\s\S]*>/i.test(newHtml)) {
-                await refundCredits(userId, CREDIT_COSTS.elementEdit);
-                charged = false;
+                await refundCharge(chargeId);
                 throw new UpstreamError('Could not edit that element — credits refunded. Try rephrasing.');
             }
 
-            return await enhanceImages(newHtml).catch(() => newHtml);
+            const enhanced = tagSectionsIfMissing(await enhanceImages(newHtml).catch(() => newHtml));
+            await settleCharge(chargeId).catch(() => {});
+            return enhanced;
         } catch (err) {
-            if (charged) await refundCredits(userId, CREDIT_COSTS.elementEdit).catch(() => {});
+            if (chargeId) await refundCharge(chargeId).catch(() => {});
             throw err;
         } finally {
-            if (locked) editing.delete(projectId);
+            if (lockToken) await releaseProjectLock(projectId, lockToken).catch(() => {});
         }
     },
 
     // Persist a manual editor save for one page (free — no LLM).
     async save(userId: string, projectId: string, code: string, path?: string) {
-        let locked = false;
+        let lockToken: string | null = null;
         try {
             const project = await projectRepository.findOwned(projectId, userId);
             if (!project) throw new NotFoundError('Project not found');
@@ -212,11 +217,8 @@ ${EDIT_IMAGE_RULES}`
             const currentContent = filesObj ? (filesObj[filePath] ?? '') : (project.current_code ?? '');
             if (code === currentContent) return 'No changes to save';
 
-            if (editing.has(projectId)) {
-                throw new ConflictError('A change is already being applied — please retry.');
-            }
-            editing.add(projectId);
-            locked = true;
+            lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
+            if (!lockToken) throw new ConflictError('A change is already being applied — please retry.');
 
             const updatedFiles = filesObj ? { ...filesObj, [filePath]: code } : undefined;
             const indexHtml = updatedFiles ? (updatedFiles['index.html'] ?? code) : code;
@@ -238,7 +240,7 @@ ${EDIT_IMAGE_RULES}`
             await pruneVersions(projectId).catch(() => {});
             return 'Project saved successfully';
         } finally {
-            if (locked) editing.delete(projectId);
+            if (lockToken) await releaseProjectLock(projectId, lockToken).catch(() => {});
         }
     },
 
@@ -250,12 +252,17 @@ ${EDIT_IMAGE_RULES}`
         const version = await projectRepository.findVersion(versionId, projectId);
         if (!version) throw new NotFoundError('Version not found');
 
-        await projectRepository.update(projectId, {
-            current_code: version.code,
-            files: (version.files ?? undefined) as any,
-            current_version_index: version.id,
-        });
-
-        await projectRepository.addMessage(projectId, 'assistant', "I've rolled back your website to selected version. You can now preview it");
+        const lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
+        if (!lockToken) throw new ConflictError('A change is already being applied — please wait, then roll back.');
+        try {
+            await projectRepository.update(projectId, {
+                current_code: version.code,
+                files: (version.files ?? undefined) as any,
+                current_version_index: version.id,
+            });
+            await projectRepository.addMessage(projectId, 'assistant', "I've rolled back your website to selected version. You can now preview it");
+        } finally {
+            await releaseProjectLock(projectId, lockToken).catch(() => {});
+        }
     },
 };

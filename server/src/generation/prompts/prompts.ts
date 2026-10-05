@@ -191,7 +191,7 @@ The user's OWN words always take priority. The DESIGN BRIEF is only a helpful ex
 Build a FULL multi-section site appropriate to the request — even if the request is brief — with a header/nav, hero, several content sections, and a footer.
 
 SINGLE-PAGE NAVIGATION — this is ONE page; the nav scrolls, it never leaves the page:
-- Give every major section a real id: <section id="menu">, <section id="about">, <section id="contact">, etc.
+- Give every major section a real id AND data-section-id: <header data-section-id="header">, <section id="hero" data-section-id="hero">, <section id="about" data-section-id="about">, <footer data-section-id="footer">, etc.
 - Every header/nav link MUST be an in-page anchor href="#section-id" that points to a section id that ACTUALLY EXISTS on this page. Build the sections first, then create the nav from exactly those ids — every nav link must resolve to a real section, with NO mismatches.
 - NEVER use href="#" (dead link) and NEVER link to another file (no about.html, menu.html, shop.html, order.html). There is only this one page.
 - The mobile hamburger menu uses the SAME #section-id anchors and closes on click.
@@ -199,6 +199,7 @@ SINGLE-PAGE NAVIGATION — this is ONE page; the nav scrolls, it never leaves th
 
 CRITICAL REQUIREMENTS:
 - Output valid HTML ONLY.
+- Ensure all semantic sections have data-section-id attributes for surgical edit-scoping.
 - Include this EXACT script in the <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 - Use Tailwind utility classes for all styling, animation and responsiveness.
 

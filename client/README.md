@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# GenSite — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React + Vite single-page app for **GenSite**, the AI website builder. It handles
+auth, the generation UI (live SSE preview, conversational revisions, in-place element
+editing), version history, billing, and the public community gallery.
 
-Currently, two official plugins are available:
+> For the full product overview, architecture, and deployment, see the
+> [root README](../README.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack
 
-## React Compiler
+- **React 19** + **TypeScript** on **Vite 7**
+- **Tailwind CSS 4** + **shadcn/ui**, lucide-react icons
+- **React Router 7**, Axios, Sonner (toasts)
+- Framer Motion + Lenis (smooth scroll)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Structure
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+client/src/
+├── app/        # App, providers, routing
+├── pages/      # route screens — marketing · app · legal
+├── features/   # auth · editor · billing
+└── shared/     # ui · components · lib · api
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Imports use the `@/…` path alias.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Getting started
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+cp .env.example .env     # set VITE_BASEURL to your API URL
+npm run dev              # http://localhost:5173
 ```
+
+## Environment
+
+| Variable | Description |
+| --- | --- |
+| `VITE_BASEURL` | Backend API base URL (e.g. `http://localhost:3000`) — baked in at **build time** |
+
+## Scripts
+
+```bash
+npm run dev        # Vite dev server
+npm run build      # production build
+npm run lint       # ESLint
+npx tsc --noEmit -p tsconfig.app.json   # typecheck
+```
+
+## Deployment
+
+Deploys to **Vercel** with root = `client`. Set `VITE_BASEURL` to the API URL;
+`vercel.json` handles SPA routing. See the [root README](../README.md#-deployment)
+for the full picture.

@@ -19,7 +19,7 @@ export const editElementBody = z.object({
     message: z.string().trim()
         .min(1, 'Please enter a valid prompt')
         .max(LIMITS.messageMaxChars, 'Message is too long (max 2000 characters).'),
-    html: z.string().min(1, 'No element selected'),
+    html: z.string().min(1, 'No element selected').max(LIMITS.pageMaxBytes, 'That element is too large to edit.'),
 });
 
 export const saveBody = z.object({

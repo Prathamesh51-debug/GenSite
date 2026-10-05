@@ -4,7 +4,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { auth } from '@/platform/auth/auth.js';
 import prisma from '@/platform/db/prisma.js';
 import { parseTrustedOrigins } from '@/core/origins.js';
-import { apiLimiter, authLimiter } from '@/shared/middleware/rateLimiters.js';
+import { apiLimiter, authLimiter, signupLimiter } from '@/shared/middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from '@/shared/http/errorHandler.js';
 import { LIMITS } from '@/shared/config/constants.js';
 import userRouter from '@/modules/user/interface/user.routes.js';
@@ -56,6 +56,7 @@ export const createApp = () => {
     // Stripe webhook needs the raw body for signature verification — mount before json().
     app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebhook);
 
+    app.post('/api/auth/sign-up/email', signupLimiter);
     app.all('/api/auth/{*any}', authLimiter, (req, res) => toNodeHandler(auth)(req, res));
 
     app.use(express.json({ limit: LIMITS.jsonBodyMax }));

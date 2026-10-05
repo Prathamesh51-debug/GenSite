@@ -1,15 +1,42 @@
+import { randomUUID } from 'node:crypto';
 import prisma from '@/platform/db/prisma.js';
 import { LIMITS } from '@/shared/config/constants.js';
 
-// projectId -> AbortController for the running generation. Doubles as the
-// duplicate-start guard and the cancel handle. Process-local (single node).
 export const generating = new Map<string, AbortController>();
 
-// Per-project lock serializing AI revisions, element edits and manual saves so two
-// writers can't race current_code / current_version_index.
-export const editing = new Set<string>();
+export const LOCK_TTL = {
+    generation: 20 * 60_000,
+    edit: 10 * 60_000,
+} as const;
 
-// Keep only the most recent N versions per project; older snapshots fall out.
+type LeaseDb = { websiteProject: Pick<typeof prisma.websiteProject, 'updateMany'> };
+
+export const acquireProjectLock = async (
+    projectId: string,
+    userId: string,
+    ttlMs: number,
+    db: LeaseDb = prisma,
+    now = new Date()
+): Promise<string | null> => {
+    const token = randomUUID();
+    const { count } = await db.websiteProject.updateMany({
+        where: {
+            id: projectId,
+            userId,
+            OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }],
+        },
+        data: { lockToken: token, lockedUntil: new Date(now.getTime() + ttlMs) },
+    });
+    return count > 0 ? token : null;
+};
+
+export const releaseProjectLock = async (projectId: string, token: string, db: LeaseDb = prisma): Promise<void> => {
+    await db.websiteProject.updateMany({
+        where: { id: projectId, lockToken: token },
+        data: { lockToken: null, lockedUntil: null },
+    });
+};
+
 export const pruneVersions = async (projectId: string): Promise<void> => {
     const stale = await prisma.version.findMany({
         where: { projectId },

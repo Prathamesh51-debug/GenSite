@@ -29,6 +29,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   transactions Transaction[]
+  creditCharges CreditCharge[]
 
   @@map("user")
 }
@@ -43,6 +44,8 @@ model WebsiteProject {
   current_version_index String  @default("")
   userId                String
   isPublished           Boolean @default(false)
+  lockToken             String?
+  lockedUntil           DateTime?
 
   // Relations
   conversation Conversation[]
@@ -102,6 +105,28 @@ model Transaction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum ChargeStatus {
+  pending
+  settled
+  refunded
+}
+
+model CreditCharge {
+  id        String       @id @default(uuid())
+  userId    String
+  amount    Int
+  kind      String
+  status    ChargeStatus @default(pending)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status, createdAt])
+  @@index([kind, createdAt])
 }
 
 model Session {

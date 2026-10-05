@@ -1,6 +1,6 @@
 import { createChatCompletion, FREE_MODEL, ENHANCE_MODEL } from '@/generation/providers/openai.js';
 import { resolveModel } from '@/generation/providers/models.js';
-import { extractHtml, looksLikeHtml } from '@/core/html.js';
+import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
 import { buildSinglePageMessages, buildEnhanceMessages } from '@/generation/prompts/prompts.js';
 import { enhanceImages } from '@/generation/images/imageProvider.js';
 
@@ -72,7 +72,8 @@ export const generateSite = async (
   // Upgrade placeholder photos to curated stock (PRD R1). Optional + fail-safe:
   // with no PEXELS_API_KEY, or on any error, the original loremflickr URLs remain.
   onProgress?.('Polishing images…');
-  const html = await enhanceImages(single.html).catch(() => single.html);
+  let html = await enhanceImages(single.html).catch(() => single.html);
+  html = tagSectionsIfMissing(html);
 
   const downgraded = isPremium && !!chosen && !!single.usedModel && !single.usedModel.startsWith(chosen);
   return { files: { 'index.html': html }, index: html, downgraded };

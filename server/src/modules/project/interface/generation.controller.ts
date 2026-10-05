@@ -1,23 +1,22 @@
 import type { Request, Response } from 'express';
-import { chargeCredits, refundCredits } from '@/core/credits.js';
+import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { storeHtml } from '@/platform/storage/storage.js';
 import { generateSite } from '@/generation/orchestrator/generate.js';
 import { CREDIT_COSTS } from '@/shared/config/constants.js';
 import { generationCost } from '@/generation/providers/models.js';
 import { projectRepository } from '@/modules/project/data/project.repository.js';
-import { generating, pruneVersions } from '@/modules/project/domain/project.runtime.js';
+import {
+    generating, pruneVersions, acquireProjectLock, releaseProjectLock, LOCK_TTL,
+} from '@/modules/project/domain/project.runtime.js';
 import { generationService } from '@/modules/project/application/generation.service.js';
 
 export const streamGeneration = async (req: Request, res: Response) => {
     const userId = req.userId!;
     const { projectId } = req.params as { projectId: string };
-    let charged = false;
-
-    let cost: number = CREDIT_COSTS.generate;
-
-    let owns = false;
-
+    let chargeId: string | null = null;
+    let lockToken: string | null = null;
     let finished = false;
+
     const abort = new AbortController();
     req.on('close', () => { if (!finished) abort.abort(); });
 
@@ -30,22 +29,30 @@ export const streamGeneration = async (req: Request, res: Response) => {
     const send = (obj: any) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
     try {
-        const project = await projectRepository.findOwned(projectId, userId);
-        if (!project) { send({ type: 'error', message: 'Project not found' }); return res.end(); }
+        const existing = await projectRepository.findOwned(projectId, userId);
+        if (!existing) { send({ type: 'error', message: 'Project not found' }); return res.end(); }
+        if (existing.current_code) { send({ type: 'done', html: existing.current_code }); return res.end(); }
 
-        if (project.current_code) { send({ type: 'done', html: project.current_code }); return res.end(); }
-
-        if (generating.has(projectId)) {
+        lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.generation);
+        if (!lockToken) {
             send({ type: 'error', message: 'This site is already being generated — please wait a moment.' });
             return res.end();
         }
+
+        const project = await projectRepository.findOwned(projectId, userId);
+        if (!project) { send({ type: 'error', message: 'Project not found' }); return res.end(); }
+        if (project.current_code) { send({ type: 'done', html: project.current_code }); return res.end(); }
+
         generating.set(projectId, abort);
-        owns = true;
 
-        cost = generationCost(project.model);
+        if (await freeCapReached(userId)) {
+            send({ type: 'error', message: 'Free generation capacity is used up for today. Please try again tomorrow or add credits.' });
+            return res.end();
+        }
 
-        charged = await chargeCredits(userId, cost);
-        if (!charged) {
+        const cost = generationCost(project.model);
+        chargeId = await chargeCredits(userId, cost, 'generate');
+        if (!chargeId) {
             send({ type: 'error', message: `You need at least ${cost} credits to generate. Please add more.` });
             return res.end();
         }
@@ -57,28 +64,27 @@ export const streamGeneration = async (req: Request, res: Response) => {
         });
 
         if (!result) {
-            if (charged) { await refundCredits(userId, cost).catch(() => {}); charged = false; }
+            await refundCharge(chargeId).catch(() => {});
+            chargeId = null;
             await projectRepository.addMessage(projectId, 'assistant', "I couldn't generate your website this time and refunded your credits. Please try again, ideally with a bit more detail.");
             send({ type: 'error', message: 'Generation failed — credits refunded.' });
             return res.end();
         }
 
         const { files, index } = result;
-
-        if (result.downgraded && cost > CREDIT_COSTS.generate) {
-            const surcharge = cost - CREDIT_COSTS.generate;
-            await refundCredits(userId, surcharge).catch(() => {});
-            cost = CREDIT_COSTS.generate;
+        const surcharge = result.downgraded && cost > CREDIT_COSTS.generate ? cost - CREDIT_COSTS.generate : 0;
+        if (surcharge) {
             send({ type: 'progress', message: `Our premium model was briefly unavailable, so your site was built with a standard model — we've refunded ${surcharge} credits.` });
         }
 
         const indexRef = await storeHtml(index, projectId);
-        const pageCount = Object.keys(files).length;
 
         const priorVersions = await projectRepository.countVersions(projectId);
         const version = await projectRepository.createVersion({ code: indexRef, files, description: 'Initial version', projectId });
-        await projectRepository.addMessage(projectId, 'assistant', `I've created your ${pageCount}-page website! You can preview it and request any changes.`);
+        await projectRepository.addMessage(projectId, 'assistant', "I've created your website! You can preview it and request any changes.");
         await projectRepository.update(projectId, { current_code: indexRef, files, current_version_index: version.id });
+        await settleCharge(chargeId, surcharge).catch(() => {});
+        chargeId = null;
         if (priorVersions === 0) {
             await projectRepository.incrementCreation(userId).catch(() => {});
         }
@@ -88,12 +94,15 @@ export const streamGeneration = async (req: Request, res: Response) => {
         send({ type: 'done', html: index });
         res.end();
     } catch (error: any) {
-        if (charged) { await refundCredits(userId, cost).catch(() => {}); charged = false; }
+        if (chargeId) await refundCharge(chargeId).catch(() => {});
         console.error('stream error:', error?.message);
         try { send({ type: 'error', message: 'Generation failed. Please try again.' }); } catch {}
         res.end();
     } finally {
-        if (owns) generating.delete(projectId);
+        if (lockToken) {
+            if (generating.get(projectId) === abort) generating.delete(projectId);
+            await releaseProjectLock(projectId, lockToken).catch(() => {});
+        }
     }
 };
 

@@ -271,7 +271,6 @@ npm run dev                     # app on http://localhost:5173
 | `RESEND_API_KEY` · `EMAIL_FROM` | _(optional)_ enable verification emails; unset ⇒ links logged to console |
 | `LANGFUSE_SECRET_KEY` · `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_BASEURL` | _(optional)_ LLM tracing |
 | `SENTRY_DSN` | _(optional)_ error monitoring |
-| `STORAGE_DRIVER` | _(optional)_ `inline` (default, Postgres) or `s3` — see `server/SCALING.md` |
 | `NODE_ENV` / `PORT` | environment / listen port (injected by most hosts) |
 
 **`client/.env`** (see `client/.env.example`)

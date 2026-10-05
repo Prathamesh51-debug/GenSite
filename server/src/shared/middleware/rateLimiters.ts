@@ -11,3 +11,11 @@ export const authLimiter = bucket(20);
 export const genLimiter = bucket(20);
 // DB-writing endpoints that don't hit the LLM (saves, rollbacks, publish, delete).
 export const writeLimiter = bucket(60);
+
+export const signupLimiter = rateLimit({
+    windowMs: 60 * 60_000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many sign-ups from this network. Please try again later.' },
+});

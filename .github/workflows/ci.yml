@@ -35,8 +35,9 @@ jobs:
           npx tsc --noEmit
           npm test
 
-      - name: Client — typecheck
+      - name: Client — lint & typecheck
         working-directory: client
         run: |
           npm install --no-audit --no-fund
+          npm run lint
           npx tsc --noEmit -p tsconfig.app.json

@@ -14,7 +14,7 @@ export const projectRepository = {
     findOwnedWithHistory: (id: string, userId: string) =>
         prisma.websiteProject.findUnique({
             where: { id, userId },
-            include: { versions: true, conversation: { orderBy: { timestamp: 'asc' } } },
+            include: { conversation: { orderBy: { timestamp: 'asc' } } },
         }),
 
     findThumbnail: (id: string, userId: string) =>

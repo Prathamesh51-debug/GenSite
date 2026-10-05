@@ -11,7 +11,7 @@ import { SparklesIcon } from 'lucide-react';
 // Injected into every previewed page so clicks on internal *.html links switch the
 // active page IN-PLACE (postMessage to the parent) rather than trying to navigate the
 // sandboxed srcDoc iframe, which has no real sibling files.
-const navScript = `<script id="__nav">(function(){document.addEventListener('click',function(e){var el=e.target;while(el&&el.tagName!=='A')el=el.parentElement;if(!el)return;var href=el.getAttribute('href')||'';if(href.slice(-5).toLowerCase()==='.html'&&href.indexOf('://')===-1){e.preventDefault();var p=href;if(p.charAt(0)==='.'&&p.charAt(1)==='/')p=p.slice(2);else if(p.charAt(0)==='/')p=p.slice(1);parent.postMessage({type:'NAVIGATE',path:p},'*');}},true);})();<\/script>`;
+const navScript = `<script id="__nav">(function(){document.addEventListener('click',function(e){var el=e.target;while(el&&el.tagName!=='A')el=el.parentElement;if(!el)return;var href=el.getAttribute('href')||'';if(href.slice(-5).toLowerCase()==='.html'&&href.indexOf('://')===-1){e.preventDefault();var p=href;if(p.charAt(0)==='.'&&p.charAt(1)==='/')p=p.slice(2);else if(p.charAt(0)==='/')p=p.slice(1);parent.postMessage({type:'NAVIGATE',path:p},'*');}},true);})();</script>`;
 
 interface ProjectPreviewProps {
     project: Project;

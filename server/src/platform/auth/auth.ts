@@ -1,11 +1,20 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { captcha } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from '@/platform/db/prisma.js';
 import { sendEmail, isEmailConfigured, verificationEmail, resetPasswordEmail } from '@/platform/email/email.js';
 import { parseTrustedOrigins } from '@/core/origins.js';
+import { isDisposableEmail } from '@/core/disposableEmail.js';
 // If your Prisma file is located elsewhere, you can change the path
 
 const trustedOrigins = parseTrustedOrigins();
+
+const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+
+if (process.env.NODE_ENV === 'production' && !isEmailConfigured()) {
+    console.warn('RESEND_API_KEY is not set: sign-ups are NOT email-verified, so free credits can be farmed with throwaway accounts.');
+}
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
@@ -46,6 +55,21 @@ export const auth = betterAuth({
       user: {
         deleteUser : {enabled: true}
       },
+      databaseHooks: {
+        user: {
+          create: {
+            before: async (user) => {
+              if (isDisposableEmail(user.email)) {
+                throw new APIError("BAD_REQUEST", { message: "Please sign up with a permanent email address." });
+              }
+              return { data: user };
+            },
+          },
+        },
+      },
+      plugins: turnstileSecret
+        ? [captcha({ provider: "cloudflare-turnstile", secretKey: turnstileSecret, endpoints: ["/sign-up/email"] })]
+        : [],
       trustedOrigins ,
       baseURL :process.env.BETTER_AUTH_URL!,
       secret: process.env.BETTER_AUTH_SECRET!,

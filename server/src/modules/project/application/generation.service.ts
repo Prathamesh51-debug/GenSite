@@ -1,6 +1,6 @@
 import { ConflictError, NotFoundError } from '@/shared/http/AppError.js';
 import { projectRepository } from '@/modules/project/data/project.repository.js';
-import { generating } from '@/modules/project/domain/project.runtime.js';
+import { generating, acquireProjectLock, releaseProjectLock, LOCK_TTL } from '@/modules/project/domain/project.runtime.js';
 
 export const generationService = {
     // Cancel an in-flight generation. The stream's own catch refunds the charge.
@@ -14,7 +14,12 @@ export const generationService = {
     async regenerate(userId: string, projectId: string) {
         const owned = await projectRepository.findOwnedId(projectId, userId);
         if (!owned) throw new NotFoundError('Project not found');
-        if (generating.has(projectId)) throw new ConflictError('This project is already generating.');
-        await projectRepository.update(projectId, { current_code: null, current_version_index: '' });
+        const token = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
+        if (!token) throw new ConflictError('This project is busy — please wait for the current change to finish.');
+        try {
+            await projectRepository.update(projectId, { current_code: null, current_version_index: '' });
+        } finally {
+            await releaseProjectLock(projectId, token).catch(() => {});
+        }
     },
 };
