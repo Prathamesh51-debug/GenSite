@@ -1,361 +1,286 @@
-<div align="center">
+# GenSite
 
-# 🌐 GenSite — AI Website Builder
+An AI website builder. Describe a business in one sentence and GenSite generates a complete,
+responsive website you can watch being built, refine by chatting with it, roll back, and publish.
 
-**Turn a single sentence into a complete, responsive website — in seconds, with AI.**
+**[Live demo](https://ai-website-builder-prathamesh-three-amber.vercel.app)** &nbsp;·&nbsp;
+[![CI](https://github.com/Prathamesh51-debug/GenSite/actions/workflows/ci.yml/badge.svg)](https://github.com/Prathamesh51-debug/GenSite/actions/workflows/ci.yml)
 
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Node.js](https://img.shields.io/badge/Node-Express_5-339933?logo=node.js&logoColor=white)](https://expressjs.com)
-[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)](https://supabase.com)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+![GenSite landing page](assets/screenshots/landing.png)
 
-[**Live Demo →**](https://ai-website-builder-prathamesh-three-amber.vercel.app)
+## Features
 
-</div>
+- **Generate** a full single-page site from a prompt. Short prompts are first expanded into a design brief (brand, palette, fonts, sections).
+- **Refine** by chat or by clicking any section. Chat edits tell you what they changed.
+- **Version history** with one-click rollback, **publishing** to a public gallery, and HTML download.
+- **Credits and billing** with Stripe Checkout; free and premium model tiers.
 
----
+## Example output
 
-## ✨ What is it?
+Same prompt, free and premium tiers ([open free](https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/free.html) · [open premium](https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/premium.html)):
 
-**GenSite** is a full-stack **generative-AI** web app that lets anyone build a website by *describing it in plain English*. Type something like *"a sleek landing page for a coffee brand with a menu and a contact section,"* and GenSite designs, generates, and publishes a complete, responsive **single-page** site — no code, no design tools, no templates.
+| Free tier | Premium tier |
+| --- | --- |
+| ![Free-tier output](assets/samples/free.png) | ![Premium-tier output](assets/samples/premium.png) |
 
-It's a real product, not a demo: authentication, credit-based billing, live streaming previews, version history, an in-browser element editor, and one-click publishing to a public community gallery.
-
-**The problem it solves.** Getting a website online still has a painfully high barrier to entry — non-technical people can't write HTML/CSS, agencies are slow and expensive, and drag-and-drop builders still demand hours of manual layout. GenSite collapses *"I have an idea"* → *"my site is live"* into a single sentence and a few seconds by putting an LLM in the generation loop.
-
-## 🧭 The story so far
-
-GenSite didn't start here. It began as a tutorial-style clone and was rebuilt, over **74 commits**, into a lean and layered product. The interesting part of this repo is that evolution:
-
-<div align="center">
-  <img src="assets/evolution.svg" alt="Project evolution across 74 commits: June 2026 tutorial base, July professional rebuild, July–August performance trim, August v2 architecture and pipeline" width="840">
-</div>
-
-1. **Base (Jun 2026).** A tutorial-style starting point — a multi-page app with a Spline 3D hero and a stack of heavy animation libraries, imported across 32 commits.
-2. **Professional rebuild (Jul 2026).** Restructured into feature modules (`project` / `user` / `billing`) on a shared HTTP foundation, with legal pages, CI, and brand + SEO assets.
-3. **Trim the bloat (Jul–Aug 2026).** Removed the Spline hero and `tsparticles` / `gsap` / `motion` / `ogl` (−2,822 lines), dropped `helmet` for hand-rolled headers, and added a keep-alive worker.
-4. **v2 architecture & pipeline (Aug 2026).** A layered restructure (50 server + 28 client files) and a rewritten generation pipeline: free/premium tiers, single-page generation, Pexels images, and prompt enhancement.
-
-## 📊 Impact & ROI
-
-The rewrite paid off across four dimensions — generation cost, frontend weight, uptime, and code structure:
-
-<div align="center">
-  <img src="assets/roi-overview.svg" alt="Impact at a glance: LLM calls 5→1, ~$0.01 per site free tier, −2.8k lines and 7 libs cut, 38 unit tests in CI" width="840">
-</div>
-
-| Metric | Before | After |
-| --- | --- | --- |
-| LLM calls / site | ~5 (multi-page: 1 plan + 4 pages) | 1 (+1 if a vague prompt is enhanced) |
-| Cost / site — Free | — | **~$0.01** (`gpt-oss-120b`) |
-| Cost / site — Premium | — | **~$0.02** (`gpt-5-mini`) |
-| Frontend weight | Spline + 7 animation libs | **−2,822 lines**, 7 packages removed |
-| Tests | 20 (HTML helpers only) | **38**, covering the credit ledger, locks, Stripe billing and the sanitizer |
-| Code structure | flat controllers/pages | layered, **one folder per feature** (server: 42 files in 9 folders) |
-
-> Costs are measured per generated site on OpenRouter.
-
-## 🎚️ Free vs Premium — see the difference
-
-Same prompt (*"a software developer portfolio"*), two tiers. The **free** model ships a clean, professional site; **premium** returns a richer, editorial layout — an asymmetric hero with a case-study card, a profile panel, design-token theming, and dark-mode support. **Click either preview to open the live page.**
-
-<div align="center">
-  <a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/premium.html" title="Open the live premium page"><img src="assets/samples/premium-hero.gif" alt="Premium hero animating a shifting purple-to-cyan gradient" width="840"></a>
-  <br/><sub>⭐ <strong>Premium's hero is animated</strong> — a slow, shifting gradient a static screenshot can't show. The free tier's hero is a flat gradient. <a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/premium.html">Open the live page</a> to see it move.</sub>
-</div>
-
-<table>
-<tr>
-<td width="50%" align="center"><strong>🆓 Free</strong><br/><sub><code>gpt-oss-120b</code> · 5 credits · ~$0.01</sub></td>
-<td width="50%" align="center"><strong>⭐ Premium</strong><br/><sub><code>gpt-5-mini</code> · 20 credits · ~$0.02</sub></td>
-</tr>
-<tr>
-<td valign="top"><a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/free.html" title="Open the live free-tier page"><img src="assets/samples/free.png" alt="Free-tier generated developer portfolio — centered hero, uniform skill grid"></a></td>
-<td valign="top"><a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/premium.html" title="Open the live premium-tier page"><img src="assets/samples/premium.png" alt="Premium-tier generated developer portfolio — editorial asymmetric hero, case-study card, profile panel"></a></td>
-</tr>
-</table>
-
-<div align="center"><sub>▶ Open the live pages: <a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/free.html">free sample</a> · <a href="https://raw.githack.com/Prathamesh51-debug/GenSite/main/assets/samples/premium.html">premium sample</a></sub></div>
-
-> Every free build is still a complete, responsive site — premium is for when you want the most polished, consistent result. And if a premium request is ever served by a free model, the surcharge is **auto-refunded**, so you only pay premium for premium output.
-
-## 🚀 Features
-
-- 🧠 **Prompt-to-website generation** — describe it, get a full standalone HTML + Tailwind page
-- ✍️ **Automatic prompt enhancement** — vague prompts are expanded into a prescriptive design brief (brand, palette, fonts, sections) before generation, so even a one-liner produces a premium result. Your own words always take priority over the brief.
-- 🎚️ **Free & Premium tiers** — a fast free model for most sites, or a premium model for the most polished, consistent results. If a premium request is served by a free model, the premium surcharge is **automatically refunded**.
-- 🖼️ **Topic-matching images** — real, on-subject stock photography via **Pexels**, added in a post-generation pass, with a stable placeholder photo whenever there's no match, so images never break.
-- 🔗 **Hardened in-page navigation** — every nav link is a smooth-scroll anchor to a section that actually exists (no dead `#` links).
-- 💬 **Conversational revisions** — refine the page with natural-language follow-ups
-- 🖱️ **In-place element editing** — click any section in the preview and edit just that piece
-- 🕑 **Version history** — every change is versioned; roll back anytime
-- 👀 **Live streaming preview** — free-tier builds appear in the preview as the AI writes them (SSE snapshots, double-buffered so the frame never flickers); premium builds show progress steps
-- 🌍 **Publish to community** — share your site on a public gallery with a shareable URL
-- ⬇️ **Download** — export your generated site to open or host anywhere
-- 🔐 **Authentication** — email/password auth with secure, cross-domain sessions
-- 💳 **Credit system + Stripe billing** — atomic, race-safe metering with paid top-ups
-
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-    U([User]) --> FE["React + Vite SPA<br/>(Vercel)"]
-    FE -->|"REST + SSE · httpOnly cookies"| API["Express + TypeScript API<br/>(Render)"]
-    API --> DB[("PostgreSQL<br/>(Supabase)")]
-    API --> AI["OpenRouter LLM<br/>free + premium + fallbacks"]
-    API --> IMG["Pexels<br/>(stock images)"]
-    API --> PAY["Stripe<br/>(credit purchases)"]
-    API --> AUTH["better-auth<br/>(sessions)"]
+    browser["Browser<br/>React SPA · Vercel"]
+    api["API<br/>Express · Render"]
+    db[("PostgreSQL<br/>Supabase")]
+    llm["OpenRouter<br/>free + premium models"]
+    pexels["Pexels<br/>stock photos"]
+    stripe["Stripe"]
+    obs["Sentry · Langfuse"]
+
+    browser -- "REST + SSE<br/>httpOnly session cookie" --> api
+    browser -- "checkout" --> stripe
+    stripe -- "signed webhooks" --> api
+    api --> db
+    api --> llm
+    api --> pexels
+    api --> obs
 ```
 
-The codebase is organized by **feature** with clear separation of concerns — each feature folder holds its routes, controllers, services, repository and schemas, and the HTTP layer never touches the database:
+The server is organised by feature (`project`, `user`, `billing`), each split into routes,
+controllers, services, a repository and request schemas. Controllers never touch the database;
+pure logic (ledger, HTML handling, sanitizer, edit parsing) lives in `core/` and is unit-tested.
 
-<div align="center">
-  <img src="assets/architecture.svg" alt="Layered architecture: server routes → services → repositories → schemas, one folder per feature plus generation/core/platform/shared; client app/pages/features/shared" width="840">
-</div>
-
-**Server** — one folder per feature; the HTTP layer is thin and never touches the database:
-
-```
-*.routes / *.controller (HTTP) → *.service (business rules) → *.repository (Prisma) · *.schema (Zod)
-```
-
-```
-server/src/
-├── app.ts · server.ts          # app assembly (headers/CORS/CSRF/routers/errors) + bootstrap
-├── project/                    # generation (SSE) · revisions · element edits · saves · rollback · DB locks
-├── user/                       # projects, publish, credits balance, plan + tier catalogs
-├── billing/                    # Stripe checkout + webhook
-├── generation/                 # the AI pipeline: generate · prompts · llm (fallback chain) · models · images
-├── core/                       # pure logic: credit ledger, html, sanitizer, plans, origins (unit-tested)
-├── platform/                   # auth · prisma · email · observability
-└── shared/                     # constants · AppError/errorHandler · validation · auth + rate-limit middleware
-```
-
-**Client** — feature-based, `@/…` alias imports:
-
-```
-client/src/
-├── app/                        # App, providers, routing
-├── pages/                      # route screens — marketing · app · legal
-├── features/                   # auth · editor · billing
-└── shared/                     # ui · components · lib · api
-```
-
-## ⚙️ Generation pipeline
-
-Generation was rewritten from a multi-page flow into a single coherent page, streamed over SSE and guarded at every step:
-
-<div align="center">
-  <img src="assets/pipeline.svg" alt="Generation pipeline: prompt + tier → optional enhance → single-page generate (truncation-guarded) → Pexels images → save + SSE stream, with free/premium routing, downgrade refund, atomic credits, and auto-refund" width="840">
-</div>
+### How a generation works
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant FE as Client
-    participant API as Server
-    participant AI as OpenRouter
-    participant IMG as Pexels
-    participant DB as PostgreSQL
-    User->>FE: Describe a website
-    FE->>API: Stream request over SSE
-    API->>DB: Charge credits atomically
-    API->>AI: Enhance prompt when vague
-    API->>AI: Generate single page
-    API->>IMG: Swap in topic-matching photos
-    API->>DB: Save HTML and create version
-    API-->>FE: Stream progress then done
-    FE-->>User: Live preview, edit, download
-    Note over API,DB: On failure credits are auto-refunded
+    autonumber
+    participant B as Browser
+    participant A as API
+    participant D as Postgres
+    participant M as Model
+    B->>A: POST /api/project/stream/:id (SSE)
+    A->>D: take the project lease
+    A->>D: charge credits, ledger row "pending"
+    A->>M: expand a vague prompt into a brief
+    A-->>B: progress events
+    A->>M: generate the page
+    A->>A: add photos, sanitize, tag sections
+    A->>D: save version, mark charge "settled"
+    A-->>B: done
+    Note over A,D: Any failure refunds the charge and releases the lease
 ```
 
-## ⚡ Frontend performance
+## Engineering
 
-The tutorial-era eye-candy was stripped for a lighter bundle and lower GPU load on weak devices:
+### Credits are charged exactly once
 
-<div align="center">
-  <img src="assets/perf-bundle.svg" alt="Frontend performance: −2,822 lines removed, 7 npm packages cut plus the Spline 3D engine, zero deps for security headers; removed @splinetool, tsparticles, gsap, motion, ogl, three, helmet" width="840">
-</div>
+Every charge is a row in a ledger that moves from `pending` to exactly one final state.
+The balance check and decrement are a single conditional `UPDATE`, and each transition only
+applies while the row is still `pending`, so retries and races can't double-charge or double-refund.
 
-- Removed the **Spline 3D hero** (−367 lines) and the interactive-hero animation stack — `@tsparticles/*`, `gsap`, `motion`, `ogl`, `@types/three` (−2,822 lines).
-- Dropped **`helmet`** in favour of hand-set security headers.
-- **Kept lean:** CSS/Tailwind animation only, Lenis for smooth scroll.
-- **Auth UI loaded only where it's used.** The sign-in UI library (forms, 2FA QR codes, captcha loader) was ~41% of the main bundle. It now loads only on the sign-in and settings pages, and for signed-in users the avatar menu loads after the page renders. Measured on the landing page, logged out, Chrome "Slow 4G", median of 3:
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> pending: charge if balance covers it
+    pending --> settled: work saved
+    pending --> refunded: failed, cancelled, or stuck over 20 min
+    settled --> [*]
+    refunded --> [*]
+```
 
-| Landing page | Before | After |
+A background sweeper refunds charges left `pending` by a crash. Stripe fulfilment is idempotent
+on the checkout session id, and refunds or lost disputes claw credits back once.
+
+**Verified against a real Postgres in CI:** 100 concurrent 5-credit charges on a 25-credit balance
+succeed exactly 5 times; racing refunds and settles resolve each charge once; the same Stripe event
+delivered 5 times concurrently credits once.
+
+### One writer per project
+
+Generations, edits, saves and rollbacks take a lease on the project row (`lockToken` + expiry) with
+one atomic `UPDATE`. Only the holder can release it, and a crashed holder's lease simply expires.
+Ten concurrent attempts yield exactly one holder.
+
+### Edits that stay edits
+
+```mermaid
+flowchart TD
+    req["Chat edit request"] --> lease{"Project lease free?"}
+    lease -- no --> busy["409: a change is in progress"]
+    lease -- yes --> charge["Charge 5 credits (pending)"]
+    charge --> model["Edit with the model<br/>for the site's tier"]
+    model --> intent{"Labelled as a<br/>different website?"}
+    intent -- yes --> refuse["Refund, nothing saved"]
+    intent -- no --> drift{"Most text and the<br/>brand name replaced?"}
+    drift -- yes --> refuse
+    drift -- no --> save["Save version, list changes,<br/>settle charge"]
+```
+
+The model returns a short change summary alongside the page, which is shown in the chat and fed
+back as context for later edits. Because the model's own label proved unreliable, a measured backstop
+refuses edits that replace most of the text **and** the brand name — it separates translations from
+rebuilds correctly on all 16 outputs in the eval set.
+
+### Working with models
+
+- One model call per site (plus one to expand vague prompts), under **$0.01 per free-tier site** (measured $0.001–0.005).
+- Ordered fallback across models, one retry on rate limits, and cancellation that stops the call.
+- Cut-off output (`finish_reason: length`) is detected: a cut-off edit is refunded and not saved, a cut-off generation is retried once, and failed work is refunded.
+- An eval harness (`npm run eval`) runs real edit requests against sample sites and reports pass rate, latency and cost.
+
+### Rendering untrusted HTML
+
+Generated pages run in an `<iframe sandbox="allow-scripts">` with no `allow-same-origin`, so their
+scripts can't reach the app's cookies or API. A sanitizer neutralises `javascript:` URLs and scripts
+from unknown hosts as a second layer.
+
+The API sets security headers, rejects cross-origin state-changing requests, rate-limits by route
+class, and protects sign-up with a disposable-email block, a per-IP limit, an optional Turnstile
+captcha, and a daily cap on free AI usage.
+
+### Observability
+
+Every request gets an id (returned as `X-Request-Id`) that tags each JSON log line through
+`AsyncLocalStorage`. Unexpected errors go to Sentry. Each generation, chat edit and element edit is
+one Langfuse trace with its model calls nested inside — tokens, cost, provider — and its outcome.
+
+### Performance
+
+The auth UI library and its dependencies were about 41% of the main bundle. Loading them only on the pages that use them:
+
+| Landing page, logged out, Chrome "Slow 4G" | Before | After |
 | --- | --- | --- |
 | Main bundle | 835.6 KB (257.4 KB gzip) | **331.6 KB (108.6 KB gzip)** |
-| JavaScript downloaded | 309 KB | **164 KB (−47%)** |
-| First contentful paint | 3.07 s | **2.22 s (−28%)** |
+| JavaScript downloaded | 309 KB | **164 KB** |
+| First contentful paint | 3.07 s | **2.22 s** |
 
-## 🧰 Tech stack
+## Testing
 
-| Layer | Technology |
-| --- | --- |
-| **Frontend** | React 19, Vite 7, TypeScript, Tailwind CSS 4, shadcn/ui, React Router 7, Axios, Sonner, Framer Motion, Lenis (smooth scroll), lucide-react |
-| **Backend** | Node.js (≥ 20), Express 5, TypeScript, Zod 4 |
-| **Database** | PostgreSQL (Supabase) + Prisma 7 (`@prisma/adapter-pg`) |
-| **Auth** | better-auth (email/password, httpOnly cookie sessions) |
-| **AI** | OpenRouter (OpenAI-compatible SDK) — free tier (`gpt-oss-120b` + `qwen3-coder` fallback) · premium tier (`gpt-5-mini`) |
-| **Images** | Pexels API (topic-matching stock photos) |
-| **Payments** | Stripe (Checkout + signed webhooks) |
-| **Observability** | JSON logs tagged with a per-request ID · Sentry (unexpected errors) · Langfuse (one trace per AI action with tokens, cost and outcome) — Sentry/Langfuse turn on with their env keys |
-| **Testing / CI** | Vitest · GitHub Actions (lint · typecheck · test) |
-| **Hosting** | Vercel (client) · Render (API) · Supabase (DB) |
+| Suite | Tests | Covers |
+| --- | --- | --- |
+| Unit | 114 | Ledger, locks, Stripe, model fallback and streaming, edit parsing, sanitizer, request context |
+| Integration | 15 | Concurrency and full edit → save → rollback flows on a real Postgres |
+| Model evals | 5 cases | Real model output: intent, change count, text drift, latency, cost |
 
-## 🛠️ Engineering highlights & design decisions
+Unit and integration tests run on every push; integration tests use a temporary Postgres service.
+Evals call paid models and are run by hand.
 
-The interesting parts are the trade-offs, not the happy path:
-
-- **Prompt enhancement for vague requests.** Short prompts (< 12 words) are expanded by a cheap free model into a maximally prescriptive single-page brief (invented brand, exact hex palette, exact Google Fonts, per-section content/layout/CTA) so even a weak model renders a premium result. The enhancer re-throws user cancels, falls back to the raw prompt on any error, and the generator is told the user's own words override the brief. (`server/src/generation/generate.ts`)
-- **Truncation-guarded single-page generation.** Generation runs under a token cap and retries once on `finish_reason === 'length'`, keeping the fullest valid attempt — so large sites never ship half-written. Nav links are constrained to real in-page `#section` anchors with smooth scroll.
-- **Two-tier model routing with a downgrade refund.** `createChatCompletion` tries the premium model, then falls through an ordered list of free models. If a *premium* build ends up served by a free model, the premium surcharge is detected (via the response model) and **refunded**. The active models live in one place and are overridable by env.
-- **Atomic, race-safe credit metering.** Credits are charged with a single conditional `UPDATE ... WHERE credits >= amount`, so concurrent requests can't overspend. Every charge is also written to a `CreditCharge` **ledger** as `pending` and then settled or refunded **exactly once**; a background sweeper refunds charges left pending by a crash. The **authoritative charge happens at generation time** (not project creation), and a failed build is refunded and never silently re-run for free.
-- **Resilient AI layer.** Free LLM endpoints are rate-limited and frequently deprecated, so every call **retries transient `429`s and falls back across the model list on any provider error**.
-- **Streaming generation over SSE.** The client reads the build off `fetch` (not `EventSource`), with cancel via an `AbortController`. Generations, revisions, saves and rollbacks take a **per-project lease stored in Postgres** (lock token + expiry), so two writers can't race the "current version" — even across server instances, and a crashed holder's lease simply expires.
-- **Untrusted AI HTML is sandboxed.** Public/community/preview views render generated HTML in a `sandbox="allow-scripts"` iframe (no `allow-same-origin`) so AI output can't touch the host app or its cookies.
-- **Sign-up abuse protection.** Free credits attract throwaway accounts, so sign-ups block disposable email domains, are rate-limited per IP, can require a Cloudflare Turnstile captcha, and AI usage by never-paid accounts has a daily circuit breaker (`FREE_DAILY_AI_CAP`).
-- **Idempotent Stripe billing.** Credits are granted from the **signature-verified webhook**, keyed by the unique `stripeSessionId`; refunds/disputes claw credits back exactly once, all inside DB transactions.
-- **Security by default.** Hand-set security headers (`nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS in prod), a CORS + Origin-based CSRF check driven by a trusted-origins allowlist, tiered rate limiters, a bounded JSON body, and a `/healthz` probe that also reports DB reachability.
-- **Observability.** Every request gets an ID (returned as `X-Request-Id` and in 500 responses) that tags every log line via `AsyncLocalStorage`. Unexpected errors go to Sentry; each generation, chat edit and element edit is one Langfuse trace with its AI calls nested inside (tokens, cost, provider, fallbacks) and its outcome (saved, refunded, refused…).
-- **Connection pooling.** Runtime traffic uses Supabase's **transaction pooler (PgBouncer)** via `DATABASE_URL`; Prisma migrations use a **direct connection** (`DIRECT_URL`) — avoiding connection exhaustion.
-
-## ⚡ Getting started
-
-### Prerequisites
-- **Node.js ≥ 20**
-- A PostgreSQL database (e.g. a free [Supabase](https://supabase.com) project)
-- An [OpenRouter](https://openrouter.ai) API key
-- A [Pexels](https://www.pexels.com/api/) API key — optional, for stock images
-- A [Stripe](https://stripe.com) account (test mode) — optional, for billing
-
-### 1. Clone
-```bash
-git clone https://github.com/Prathamesh51-debug/GenSite.git
-cd GenSite
-```
-
-### 2. Backend
 ```bash
 cd server
-npm install
-cp .env.example .env            # then fill in the values (see below)
-npx prisma migrate deploy       # apply schema to your DB (direct connection)
-npm run dev                     # API on http://localhost:3000
-```
+npm test
+npm run eval -- --tier free --runs 1
 
-### 3. Frontend
-```bash
-cd client
-npm install
-cp .env.example .env            # set VITE_BASEURL
-npm run dev                     # app on http://localhost:5173
-```
-
-## 🔑 Environment variables
-
-**`server/.env`** (see `server/.env.example`)
-
-| Variable | Description |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection — Supabase **transaction pooler** (port 6543, `?pgbouncer=true`) |
-| `DIRECT_URL` | Direct DB connection — used **only** by Prisma migrations |
-| `BETTER_AUTH_SECRET` | Random secret for signing sessions |
-| `BETTER_AUTH_URL` | The API's public base URL |
-| `TRUSTED_ORIGINS` | Comma-separated allowed origins (your frontend URL) — drives CORS **and** the CSRF check |
-| `AI_API_KEY` | OpenRouter API key |
-| `GEN_MODELS` / `GEN_MODEL` / `PREMIUM_MODEL` / `EDIT_MODEL` / `ENHANCE_MODEL` | _(optional)_ override the free model list / defaults / premium / edit / enhancer models |
-| `PEXELS_API_KEY` | _(optional)_ enable topic-matching stock images; unset (or no match) ⇒ stable placeholder photos from picsum.photos, so images never break |
-| `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` | Stripe keys (billing) |
-| `RESEND_API_KEY` · `EMAIL_FROM` | _(optional)_ enable verification emails; unset ⇒ links logged to console |
-| `LANGFUSE_SECRET_KEY` · `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_BASEURL` | _(optional)_ LLM tracing |
-| `TURNSTILE_SECRET_KEY` | _(optional)_ require a Cloudflare Turnstile captcha on sign-up (pair with `VITE_TURNSTILE_SITE_KEY`) |
-| `FREE_DAILY_AI_CAP` | _(optional)_ daily cap on AI actions by never-paid accounts (default 300, `0` disables) |
-| `BLOCKED_EMAIL_DOMAINS` | _(optional)_ extra comma-separated sign-up domains to block |
-| `SENTRY_DSN` | _(optional)_ error monitoring |
-| `NODE_ENV` / `PORT` | environment / listen port (injected by most hosts) |
-
-**`client/.env`** (see `client/.env.example`)
-
-| Variable | Description |
-| --- | --- |
-| `VITE_BASEURL` | Backend API base URL (e.g. `http://localhost:3000`) — baked in at **build time** |
-| `VITE_TURNSTILE_SITE_KEY` | _(optional)_ Turnstile site key; shows the captcha on sign-up |
-
-## 💳 Credits & tiers
-
-New accounts start with **25 credits**. Costs are centralized in `server/src/shared/constants.ts`:
-
-| Action | Cost |
-| --- | --- |
-| Generate (free tier) | 5 credits |
-| Generate (premium tier) | 20 credits (`PREMIUM_MULTIPLIER = 4`) |
-| Conversational revision | 5 credits |
-| Element edit | 2 credits |
-
-Failed builds are refunded automatically, and a premium build that falls back to a free model refunds the premium surcharge.
-
-## 🧪 Scripts & testing
-
-```bash
-# server
-npm run dev        # tsx watch
-npm run build      # prisma generate && tsc && tsc-alias
-npm start          # node dist/server.js
-npm test           # Vitest (credit ledger, locks, Stripe billing, AI fallback chain, sanitizer, HTML helpers)
-npm run eval -- --tier free --runs 1   # real-model edit evals: pass/fail, time, cost (a few cents; not run in CI)
-npm run test:integration               # concurrency + flow tests against a throwaway local Postgres (see below)
-npx tsc --noEmit   # typecheck
-
-# client
-npm run dev        # Vite dev server
-npm run build      # production build
-npm run lint       # ESLint
-npx tsc --noEmit -p tsconfig.app.json
-```
-
-CI (`.github/workflows/ci.yml`) is a single job: server typecheck (app + evals + tests), unit tests, **integration tests against a temporary Postgres service**, and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
-
-### Integration tests (real Postgres)
-
-The money and locking guarantees are tested against a real database with real concurrent requests — e.g. 100 simultaneous charges on a 25-credit balance must succeed exactly 5 times (a naive read-then-write version lets 69 through). The suite refuses to run against anything but `localhost`, so it can never touch production.
-
-```bash
+# integration tests need a local Postgres; they refuse to run against any other host
 docker run -d --name gensite-test-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gensite_test -p 54329:5432 postgres:16-alpine
-cd server
 INTEGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:54329/gensite_test npm run test:integration
 ```
 
-## 🚢 Deployment
+## Project structure
 
-| Piece | Platform | Notes |
+```
+client/src/
+├── app/          App shell and routing
+├── pages/        Route screens (marketing, app, legal)
+├── features/     auth · editor · billing
+└── shared/       UI components, API clients, utilities
+
+server/src/
+├── app.ts        Middleware, routes, error handling
+├── project/      Generation (SSE), edits, saves, rollback, project lease
+├── user/         Projects, publishing, credits, plan and tier catalogs
+├── billing/      Stripe checkout and webhooks
+├── generation/   Prompts, model client, images
+├── core/         Credit ledger, HTML, sanitizer, edit parsing (pure, unit-tested)
+├── platform/     Auth, Prisma, email, logging, observability
+└── shared/       Errors, validation, middleware, constants
+
+server/tests/integration/   Real-Postgres tests
+server/evals/               Model eval cases and runner
+```
+
+## Running locally
+
+Requires Node.js 20+, a PostgreSQL database and an [OpenRouter](https://openrouter.ai) key.
+Pexels and Stripe keys are optional.
+
+```bash
+git clone https://github.com/Prathamesh51-debug/GenSite.git
+cd GenSite
+
+cd server
+npm install
+cp .env.example .env          # fill in the values below
+npx prisma migrate deploy
+npm run dev                   # http://localhost:3000
+
+cd ../client
+npm install
+cp .env.example .env          # set VITE_BASEURL
+npm run dev                   # http://localhost:5173
+```
+
+## Configuration
+
+**Server** (`server/.env`)
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Pooled PostgreSQL connection used at runtime |
+| `DIRECT_URL` | Direct connection used only for migrations |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Session signing secret and the API's public URL |
+| `TRUSTED_ORIGINS` | Comma-separated frontend origins (CORS and the cross-origin check) |
+| `AI_API_KEY` | OpenRouter key |
+| `GEN_MODELS`, `GEN_MODEL`, `PREMIUM_MODEL`, `EDIT_MODEL`, `ENHANCE_MODEL` | Optional model overrides |
+| `PEXELS_API_KEY` | Optional; without it images use stable placeholder photos |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Billing |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Optional; enables and enforces email verification |
+| `SENTRY_DSN` | Optional error reporting |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASEURL` | Optional model tracing |
+| `TURNSTILE_SECRET_KEY` | Optional sign-up captcha (set together with `VITE_TURNSTILE_SITE_KEY`) |
+| `FREE_DAILY_AI_CAP` | Daily AI actions allowed for never-paid accounts (default 300, `0` disables) |
+| `BLOCKED_EMAIL_DOMAINS` | Extra sign-up domains to block |
+| `STREAM_PREVIEW` | Experimental: `true` streams free-tier generations into the preview (off by default) |
+| `INTEGRATION_DATABASE_URL` | Tests only: a local Postgres for the integration suite |
+
+**Client** (`client/.env`)
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_BASEURL` | API base URL, baked in at build time |
+| `VITE_TURNSTILE_SITE_KEY` | Optional sign-up captcha |
+
+## Credits and plans
+
+New accounts get 25 credits. A free-tier generation costs 5, premium 20, a chat edit 5 and an
+element edit 2. Failed work is refunded, and a premium request served by a fallback model refunds
+the premium surcharge.
+
+| Plan | Price | Credits |
 | --- | --- | --- |
-| **Client** | Vercel | Root = `client`. Set `VITE_BASEURL` to the API URL. `vercel.json` handles SPA routing. |
-| **API** | Render | Build: `npm run build`. Start: `npm start` (`node dist/server.js`). Set `TRUSTED_ORIGINS` to the client URL. |
-| **Database** | Supabase | Transaction pooler for `DATABASE_URL`; run `prisma migrate deploy` against `DIRECT_URL`. |
+| Basic | $5 | 100 |
+| Pro | $19 | 400 |
+| Enterprise | $49 | 1000 |
 
-> ⚠️ **Migrations do not run at app startup.** Render's Supabase pooler can't run Prisma's schema engine, so apply schema changes via the Supabase SQL editor or a local direct-connection `prisma migrate deploy` — never in the start command.
+## Deployment
 
-Subscribe the Stripe webhook to `checkout.session.completed`, `payment_intent.succeeded`, `charge.refunded`, and `charge.dispute.funds_withdrawn`.
+| Part | Platform | Notes |
+| --- | --- | --- |
+| Client | Vercel | Root `client`; `vercel.json` handles SPA routing |
+| API | Render | Build `npm run build`, start `npm start` |
+| Database | Supabase | Pooled URL at runtime; run `prisma migrate deploy` against `DIRECT_URL` |
 
-> 💡 Two pingers hit `/healthz`: an external cron every 10 minutes during the day keeps the free Render tier warm, and a once-a-day GitHub Action keeps Supabase from auto-pausing (it pauses after 7 idle days). A paused Supabase project can only be restored from its dashboard.
+Migrations are applied manually before deploying code that depends on them, never at startup.
+The Stripe webhook listens for `checkout.session.completed`, `payment_intent.succeeded`,
+`charge.refunded` and `charge.dispute.funds_withdrawn`. An external monitor pings `/healthz`,
+which also checks database connectivity.
 
-## 🔒 Privacy & Terms
+## Known limitations
 
-The app ships with in-product legal pages, served by the SPA:
+- The live preview while generating is experimental and off by default; the current version reloads the frame for each update instead of appending to it.
+- Generation time depends on which provider OpenRouter routes to and varies from under a minute to several minutes.
+- No browser end-to-end or client component tests yet.
+- The owner's editor preview needs `allow-same-origin` to read the page back; public views don't.
+- Rate limits are in memory, which is fine for a single instance.
 
-- **Privacy Policy** → `/privacy`
-- **Terms of Service** → `/terms`
+## License
 
-These describe what data is stored (account, projects, billing records via Stripe) and the acceptable-use terms for generated sites. Update the copy under `client/src/pages/legal/` to match your deployment before going live.
-
-## 👤 Author
-
-**Prathamesh** · [GitHub](https://github.com/Prathamesh51-debug)
-
-## 📄 License
-
-Released under the MIT License.
+[MIT](LICENSE)
