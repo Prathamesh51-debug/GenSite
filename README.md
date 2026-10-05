@@ -91,7 +91,7 @@ Same prompt (*"a software developer portfolio"*), two tiers. The **free** model 
 - 💬 **Conversational revisions** — refine the page with natural-language follow-ups
 - 🖱️ **In-place element editing** — click any section in the preview and edit just that piece
 - 🕑 **Version history** — every change is versioned; roll back anytime
-- 👀 **Live streaming preview** — watch the site build over SSE, rendered in a sandboxed iframe
+- 👀 **Live streaming preview** — free-tier builds appear in the preview as the AI writes them (SSE snapshots, double-buffered so the frame never flickers); premium builds show progress steps
 - 🌍 **Publish to community** — share your site on a public gallery with a shareable URL
 - ⬇️ **Download** — export your generated site to open or host anywhere
 - 🔐 **Authentication** — email/password auth with secure, cross-domain sessions

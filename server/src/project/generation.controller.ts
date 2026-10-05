@@ -65,6 +65,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         const result = await generateSite(project.initial_prompt, {
             signal: abort.signal,
             onProgress: (message) => { try { send({ type: 'progress', message }); } catch {} },
+            onChunk: (html) => { try { send({ type: 'chunk', html }); } catch {} },
             model: project.model,
         });
 

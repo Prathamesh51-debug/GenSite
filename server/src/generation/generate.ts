@@ -1,4 +1,5 @@
-import { createChatCompletion, FREE_MODEL, ENHANCE_MODEL } from '@/generation/llm.js';
+import { createChatCompletion, streamChatCompletion, FREE_MODEL, ENHANCE_MODEL } from '@/generation/llm.js';
+import { previewSnapshot } from '@/generation/preview.js';
 import { resolveModel } from '@/generation/models.js';
 import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
 import { buildSinglePageMessages, buildEnhanceMessages } from '@/generation/prompts.js';
@@ -26,18 +27,37 @@ export interface GenerationResult {
   downgraded?: boolean;
 }
 
+export const PREVIEW_INTERVAL_MS = 1000;
+
+const throttledPreview = (onChunk: (html: string) => void) => {
+  let lastSent = 0;
+  return (text: string) => {
+    const now = Date.now();
+    if (now - lastSent < PREVIEW_INTERVAL_MS) return;
+    const snapshot = previewSnapshot(text);
+    if (!snapshot) return;
+    lastSent = now;
+    onChunk(snapshot);
+  };
+};
+
 const generateSinglePage = async (
   model: string,
   prompt: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onChunk?: (html: string) => void
 ): Promise<{ html: string; usedModel: string } | null> => {
   let best = '';
   let bestModel = '';
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res: any = await createChatCompletion(
-      { model, max_tokens: 16000, messages: buildSinglePageMessages(prompt) },
-      { signal }
-    ).catch(() => null);
+    const params = { model, max_tokens: 16000, messages: buildSinglePageMessages(prompt) };
+    const res: any = await (onChunk
+      ? streamChatCompletion(params, { signal, onText: throttledPreview(onChunk) })
+      : createChatCompletion(params, { signal })
+    ).catch((err) => {
+      if (signal?.aborted || err?.name === 'AbortError') throw err;
+      return null;
+    });
     const html = extractHtml(res?.choices?.[0]?.message?.content) || '';
     const usedModel = res?.model || '';
     const truncated = res?.choices?.[0]?.finish_reason === 'length';
@@ -49,7 +69,12 @@ const generateSinglePage = async (
 
 export const generateSite = async (
   prompt: string,
-  opts: { signal?: AbortSignal; onProgress?: (msg: string) => void; model?: string | null } = {}
+  opts: {
+    signal?: AbortSignal;
+    onProgress?: (msg: string) => void;
+    onChunk?: (html: string) => void;
+    model?: string | null;
+  } = {}
 ): Promise<GenerationResult | null> => {
   const { signal, onProgress } = opts;
   const isPremium = opts.model === 'premium';
@@ -65,7 +90,7 @@ export const generateSite = async (
       : 'Building your site…'
   );
 
-  const single = await generateSinglePage(model, effective, signal);
+  const single = await generateSinglePage(model, effective, signal, isPremium ? undefined : opts.onChunk);
   if (!single) return null;
 
   // Upgrade placeholder photos to curated stock (PRD R1). Optional + fail-safe:

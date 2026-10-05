@@ -33,9 +33,15 @@ const retryDelay = (attempt: number, hintSeconds?: number) => {
 
 const is429 = (err: any) => (err?.status ?? err?.code) === 429;
 
-export const createChatCompletion = async (
+interface CompletionOptions {
+  retriesPerModel?: number;
+  signal?: AbortSignal;
+}
+
+const runWithFallbacks = async (
   params: any,
-  { retriesPerModel = 1, signal }: { retriesPerModel?: number; signal?: AbortSignal } = {}
+  { retriesPerModel = 1, signal }: CompletionOptions,
+  call: (model: string) => Promise<any>
 ): Promise<any> => {
   const requested: string | undefined = params?.model;
   const models = requested
@@ -50,7 +56,7 @@ export const createChatCompletion = async (
   for (const model of models) {
     for (let attempt = 0; attempt <= retriesPerModel; attempt++) {
       try {
-        const res: any = await openai.chat.completions.create({ ...params, usage: { include: true }, model } as any, signal ? { signal } : undefined);
+        const res: any = await call(model);
 
         if (res?.error) {
           const code = res.error.code ?? res.error.status;
@@ -66,6 +72,7 @@ export const createChatCompletion = async (
           provider: res?.provider ?? null,
           tokens: res?.usage?.total_tokens ?? null,
           costUsd: res?.usage?.cost ?? null,
+          ...(res?.firstTokenMs !== undefined ? { firstTokenMs: res.firstTokenMs } : {}),
         });
         traceGeneration({
           model,
@@ -82,6 +89,11 @@ export const createChatCompletion = async (
 
         if (signal?.aborted || error?.name === 'AbortError') throw error;
 
+        if (error?.partial) {
+          logLlm({ model, outcome: 'stream_broken', message: error?.message });
+          throw error;
+        }
+
         if (is429(error) && attempt < retriesPerModel) {
           logLlm({ model, outcome: 'rate_limited', attempt });
           await sleep(retryDelay(attempt, Number(error?.headers?.['retry-after'])));
@@ -96,5 +108,59 @@ export const createChatCompletion = async (
 
   throw lastError ?? new Error('All free models are rate-limited. Please try again shortly.');
 };
+
+export const createChatCompletion = (params: any, options: CompletionOptions = {}): Promise<any> =>
+  runWithFallbacks(params, options, (model) =>
+    openai.chat.completions.create(
+      { ...params, usage: { include: true }, model } as any,
+      options.signal ? { signal: options.signal } : undefined
+    ));
+
+const readStream = async (
+  params: any,
+  model: string,
+  signal: AbortSignal | undefined,
+  onText: ((text: string) => void) | undefined
+): Promise<any> => {
+  const started = Date.now();
+  const stream: any = await openai.chat.completions.create(
+    { ...params, usage: { include: true }, model, stream: true } as any,
+    signal ? { signal } : undefined
+  );
+
+  let text = '';
+  let finish: string | null = null;
+  let usage: any = null;
+  let served = model;
+  let provider: string | null = null;
+  let firstTokenMs: number | null = null;
+
+  try {
+    for await (const chunk of stream) {
+      if (chunk?.error) throw new Error(chunk.error.message || 'AI provider error');
+      const choice = chunk?.choices?.[0];
+      const delta: string | undefined = choice?.delta?.content;
+      if (delta) {
+        if (firstTokenMs === null) firstTokenMs = Date.now() - started;
+        text += delta;
+        onText?.(text);
+      }
+      if (choice?.finish_reason) finish = choice.finish_reason;
+      if (chunk?.usage) usage = chunk.usage;
+      if (chunk?.model) served = chunk.model;
+      if (chunk?.provider) provider = chunk.provider;
+    }
+  } catch (err: any) {
+    throw text ? Object.assign(err instanceof Error ? err : new Error(String(err)), { partial: true }) : err;
+  }
+
+  return { model: served, provider, usage, firstTokenMs, choices: [{ message: { content: text }, finish_reason: finish }] };
+};
+
+export const streamChatCompletion = (
+  params: any,
+  options: CompletionOptions & { onText?: (text: string) => void } = {}
+): Promise<any> =>
+  runWithFallbacks(params, options, (model) => readStream(params, model, options.signal, options.onText));
 
 export default openai;

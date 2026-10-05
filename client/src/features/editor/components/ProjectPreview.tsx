@@ -2,6 +2,7 @@ import  { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'r
 import type { Project } from '@/types';
 import { iframeScript } from '@/features/editor/lib/iframeScript';
 import EditorPanel from './EditorPanel';
+import StreamingPreview from './StreamingPreview';
 import LoaderSteps from '@/shared/components/ui/LoaderSteps';
 import api from '@/shared/api/axios';
 import { toast } from 'sonner';
@@ -234,12 +235,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                     </div>
                 ) : streamingHtml ? (
                     <div className="relative h-full">
-                        <iframe
-                            srcDoc={streamingHtml}
-                            className="h-full w-full"
-                            sandbox={sandbox}
-                            title="generating-preview"
-                        />
+                        <StreamingPreview html={streamingHtml} sandbox={sandbox} />
                         <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-card/85 backdrop-blur px-3 py-1.5 text-xs text-foreground border border-border">
                             <span className="size-2 rounded-full bg-primary animate-pulse" /> Building your site…
                         </div>

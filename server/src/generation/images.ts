@@ -89,6 +89,10 @@ const decodeKeyword = (raw: string): string => {
   }
 };
 
+export const placeholderImages = (html: string): string =>
+  html.replace(LOREMFLICKR, (_full, w: string, h: string, keyword: string, lock?: string) =>
+    fallbackPhoto(decodeKeyword(keyword), lock ? Number(lock) : 0, Number(w), Number(h)));
+
 /**
  * Rewrite every loremflickr <img>/og:image URL in `html`: a matching photo from the
  * active provider when it finds one, otherwise a stable fallback photo that always loads.
