@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { stripe, billingService } from '@/billing/billing.service.js';
+import { log } from '@/platform/log.js';
+import { reportError } from '@/platform/observability.js';
 
 export const purchaseCredits = async (req: Request, res: Response) => {
     const { planId } = req.body as { planId: string };
@@ -54,7 +56,8 @@ export const stripeWebhook = async (request: Request, response: Response) => {
                 console.log(`Unhandled event type ${event.type}`);
         }
     } catch (err: any) {
-        console.error('Webhook handler error:', err?.message);
+        log('stripe_webhook_failed', { type: event.type, message: err?.message }, 'error');
+        reportError(err, { stripeEvent: event.type });
         return response.sendStatus(500);
     }
 

@@ -7,6 +7,7 @@ import { parseTrustedOrigins } from '@/core/origins.js';
 import { apiLimiter, authLimiter, signupLimiter } from '@/shared/rateLimiters.js';
 import { errorHandler, notFoundHandler } from '@/shared/errorHandler.js';
 import { LIMITS } from '@/shared/constants.js';
+import { requestContext } from '@/platform/requestContext.js';
 import userRouter from '@/user/user.routes.js';
 import projectRouter from '@/project/project.routes.js';
 import { stripeWebhook } from '@/billing/billing.controller.js';
@@ -19,6 +20,7 @@ export const createApp = () => {
 
     // Baseline security headers for a JSON API (no framing, no MIME sniffing, HSTS in prod).
     app.disable('x-powered-by');
+    app.use(requestContext);
     app.use((_req, res, next) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'DENY');

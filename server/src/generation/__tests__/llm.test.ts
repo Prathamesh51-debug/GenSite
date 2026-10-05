@@ -48,8 +48,8 @@ describe('createChatCompletion', () => {
     create.mockResolvedValue({ ...ok('m'), provider: 'Cerebras', usage: { total_tokens: 10, cost: 0.0079 } });
     await (await load())({ model: 'openai/gpt-oss-120b', messages: [] });
     expect(create.mock.calls[0][0].usage).toEqual({ include: true });
-    const line = vi.mocked(console.log).mock.calls.map((c) => String(c[0])).find((l) => l.startsWith('[llm]'));
-    expect(JSON.parse(line!.slice(6))).toMatchObject({ event: 'ok', provider: 'Cerebras', costUsd: 0.0079 });
+    const lines = vi.mocked(console.log).mock.calls.map((c) => JSON.parse(String(c[0])));
+    expect(lines.find((l) => l.event === 'llm')).toMatchObject({ level: 'info', outcome: 'ok', provider: 'Cerebras', costUsd: 0.0079 });
   });
 
   it('throws the last error when every model fails', async () => {

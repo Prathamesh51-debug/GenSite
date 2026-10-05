@@ -1,4 +1,6 @@
 import { Langfuse } from 'langfuse';
+import * as Sentry from '@sentry/node';
+import { currentContext } from '@/platform/requestContext.js';
 
 // Observability. Each integration no-ops unless its env keys are set, so local dev
 // and unconfigured environments run without them.
@@ -36,14 +38,14 @@ export const traceGeneration = async (data: {
 };
 
 // ---------- Sentry: server error monitoring ----------
+const sentryDsn = process.env.SENTRY_DSN;
+
 export const initSentry = (): void => {
-  const dsn = process.env.SENTRY_DSN;
-  if (!dsn) return;
-  const pkg = '@sentry/node' as string;
-  import(pkg)
-    .then((Sentry: any) => {
-      Sentry.init({ dsn, tracesSampleRate: 0.1 });
-      console.log('Sentry initialized (server).');
-    })
-    .catch(() => console.warn('SENTRY_DSN set but `@sentry/node` is not installed.'));
+  if (!sentryDsn) return;
+  Sentry.init({ dsn: sentryDsn, environment: process.env.NODE_ENV });
+};
+
+export const reportError = (err: unknown, extra: Record<string, unknown> = {}): void => {
+  if (!sentryDsn) return;
+  Sentry.captureException(err, { extra: { requestId: currentContext()?.requestId, ...extra } });
 };

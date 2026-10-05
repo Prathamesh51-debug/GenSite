@@ -3,6 +3,7 @@ import { editModel } from '@/generation/models.js';
 import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
 import { parseEditSummary, stripEditSummary, describeChanges, formatEditHistory } from '@/core/editSummary.js';
 import { measureContentDrift, looksLikeDifferentSite } from '@/core/contentDrift.js';
+import { log } from '@/platform/log.js';
 import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { CREDIT_COSTS } from '@/shared/constants.js';
 import { AppError, BadRequestError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError } from '@/shared/AppError.js';
@@ -74,7 +75,7 @@ export const revisionService = {
             enhanced = tagSectionsIfMissing(enhanced);
 
             const drift = measureContentDrift(sourceHtml, enhanced);
-            console.log(`[edit] ${JSON.stringify({ projectId, tier: project.model ?? 'free', model: response?.model ?? null, changes: summary.changes.length, ...drift })}`);
+            log('edit', { projectId, tier: project.model ?? 'free', model: response?.model ?? null, changes: summary.changes.length, ...drift });
             if (looksLikeDifferentSite(drift)) await refuseNewSite(projectId, chargeId);
 
             const version = await projectRepository.createVersion({

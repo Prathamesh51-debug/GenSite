@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { traceGeneration } from '@/platform/observability.js';
+import { log } from '@/platform/log.js';
 
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -44,8 +45,7 @@ export const createChatCompletion = async (
   let lastError: any;
 
   const started = Date.now();
-  const logLlm = (fields: Record<string, unknown>) =>
-    console.log(`[llm] ${JSON.stringify({ requested, ms: Date.now() - started, ...fields })}`);
+  const logLlm = (fields: Record<string, unknown>) => log('llm', { requested, ms: Date.now() - started, ...fields });
 
   for (const model of models) {
     for (let attempt = 0; attempt <= retriesPerModel; attempt++) {
@@ -56,12 +56,12 @@ export const createChatCompletion = async (
           const code = res.error.code ?? res.error.status;
           lastError = new Error(res.error.message || 'AI provider error');
 
-          logLlm({ model, event: code === 429 ? 'rate_limited' : 'provider_error', code });
+          logLlm({ model, outcome: code === 429 ? 'rate_limited' : 'provider_error', code });
           break;
         }
         logLlm({
           model,
-          event: 'ok',
+          outcome: 'ok',
           fallback: model !== requested,
           provider: res?.provider ?? null,
           tokens: res?.usage?.total_tokens ?? null,
@@ -75,12 +75,12 @@ export const createChatCompletion = async (
         if (signal?.aborted || error?.name === 'AbortError') throw error;
 
         if (is429(error) && attempt < retriesPerModel) {
-          logLlm({ model, event: 'rate_limited', attempt });
+          logLlm({ model, outcome: 'rate_limited', attempt });
           await sleep(retryDelay(attempt, Number(error?.headers?.['retry-after'])));
           continue;
         }
 
-        logLlm({ model, event: is429(error) ? 'rate_limited' : 'error', message: error?.message });
+        logLlm({ model, outcome: is429(error) ? 'rate_limited' : 'error', message: error?.message });
         break;
       }
     }

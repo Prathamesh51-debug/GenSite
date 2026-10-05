@@ -1,4 +1,6 @@
 import prisma from '@/platform/prisma.js';
+import { log } from '@/platform/log.js';
+import { reportError } from '@/platform/observability.js';
 
 export type ChargeKind = 'generate' | 'revision' | 'elementEdit';
 
@@ -59,8 +61,11 @@ export const sweepStaleCharges = async (now = Date.now(), db: Db = prisma): Prom
 export const startChargeSweeper = (intervalMs = 5 * 60_000): void => {
   const run = () =>
     sweepStaleCharges()
-      .then((n) => { if (n) console.log(`[credits] refunded ${n} stale pending charge(s)`); })
-      .catch((err) => console.error('[credits] sweep failed:', err?.message));
+      .then((n) => { if (n) log('stale_charges_refunded', { count: n }); })
+      .catch((err) => {
+        log('charge_sweep_failed', { message: err?.message }, 'error');
+        reportError(err, { job: 'charge-sweeper' });
+      });
   run();
   setInterval(run, intervalMs).unref();
 };

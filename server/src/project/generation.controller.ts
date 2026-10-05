@@ -8,6 +8,8 @@ import {
     generating, pruneVersions, acquireProjectLock, releaseProjectLock, LOCK_TTL,
 } from '@/project/project.runtime.js';
 import { generationService } from '@/project/generation.service.js';
+import { log } from '@/platform/log.js';
+import { reportError } from '@/platform/observability.js';
 
 export const streamGeneration = async (req: Request, res: Response) => {
     const userId = req.userId!;
@@ -93,7 +95,8 @@ export const streamGeneration = async (req: Request, res: Response) => {
         res.end();
     } catch (error: any) {
         if (chargeId) await refundCharge(chargeId).catch(() => {});
-        console.error('stream error:', error?.message);
+        log('generation_failed', { projectId, message: error?.message }, 'error');
+        if (!abort.signal.aborted) reportError(error, { projectId });
         try { send({ type: 'error', message: 'Generation failed. Please try again.' }); } catch {}
         res.end();
     } finally {
