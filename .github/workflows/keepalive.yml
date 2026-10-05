@@ -2,22 +2,13 @@ name: Keep-alive
 
 on:
   schedule:
-    - cron: '45 3 * * *'
-    - cron: '0 4 * * *'
-    - cron: '15 4 * * *'
     - cron: '30 4 * * *'
-    - cron: '45 4 * * *'
-    - cron: '0 5 * * *'
   workflow_dispatch:
 
 jobs:
-  wake-up-render:
+  ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: Warm the API across the 09:30-10:30 IST window
-        run: |
-          BE=https://ai-website-backend-4atj.onrender.com/healthz
-          for i in 1 2 3 4 5; do
-            curl -fsS -o /dev/null --retry 3 --retry-all-errors --retry-delay 15 --max-time 90 "$BE" || true
-            if [ "$i" -lt 5 ]; then sleep 90; fi
-          done
+      - name: Ping the API and database
+        run: curl -fsS --retry 5 --retry-all-errors --retry-delay 20 --max-time 90 https://ai-website-backend-4atj.onrender.com/healthz

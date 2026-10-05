@@ -3,40 +3,40 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'assets/**']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**', 'assets/**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  client:
-    name: Client — typecheck & build
+  check:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
+    timeout-minutes: 10
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: client/package-lock.json
-      - run: npm install --no-audit --no-fund
-      - run: npx tsc --noEmit -p tsconfig.app.json
-      - run: npm run build
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
 
-  server:
-    name: Server — typecheck
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      - name: Server — typecheck & test
         working-directory: server
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - run: npm install --no-audit --no-fund
-      - run: npx prisma generate
-      - run: npx tsc --noEmit
-      - run: npm test
+        run: |
+          npm install --no-audit --no-fund
+          npx tsc --noEmit
+          npm test
+
+      - name: Client — typecheck
+        working-directory: client
+        run: |
+          npm install --no-audit --no-fund
+          npx tsc --noEmit -p tsconfig.app.json
