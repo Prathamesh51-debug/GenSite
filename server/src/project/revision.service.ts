@@ -1,15 +1,22 @@
-import { createChatCompletion, EDIT_MODEL } from '@/generation/llm.js';
+import { createChatCompletion } from '@/generation/llm.js';
+import { editModel } from '@/generation/models.js';
 import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js';
+import { parseEditSummary, stripEditSummary, describeChanges, formatEditHistory } from '@/core/editSummary.js';
+import { measureContentDrift } from '@/core/contentDrift.js';
 import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { CREDIT_COSTS } from '@/shared/constants.js';
-import { AppError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError } from '@/shared/AppError.js';
+import { AppError, BadRequestError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError } from '@/shared/AppError.js';
 import { projectRepository } from '@/project/project.repository.js';
 import { pruneVersions, acquireProjectLock, releaseProjectLock, LOCK_TTL } from '@/project/project.runtime.js';
 import { enhanceImages } from '@/generation/images.js';
-import { EDIT_IMAGE_RULES } from '@/generation/prompts.js';
+import { buildRevisionMessages, buildElementEditMessages } from '@/generation/prompts.js';
 
 class FreeCapError extends AppError {
     constructor() { super(429, 'Free AI capacity is used up for today. Please try again tomorrow or add credits.'); }
+}
+
+class NewSiteRequestError extends AppError {
+    constructor() { super(422, 'That looks like a new website — start a new project for it. Your credits were refunded.'); }
 }
 
 export const revisionService = {
@@ -33,50 +40,26 @@ export const revisionService = {
 
             await projectRepository.addMessage(projectId, 'user', message);
 
-            const priorRequests = project.conversation
-                .filter((c) => c.role === 'user')
-                .slice(-5)
-                .map((c) => c.content);
-            const historyBlock = priorRequests.length
-                ? `EARLIER REQUESTS THIS SESSION (oldest to newest):\n${priorRequests.map((r) => `- ${r}`).join('\n')}\n\n`
-                : '';
+            const historyBlock = formatEditHistory(project.conversation);
 
             const sourceHtml = project.current_code ?? '';
 
             const response = await createChatCompletion({
-                model: EDIT_MODEL,
-                max_tokens: 16000,
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are an expert web developer editing an existing single-page website. You are given the CURRENT HTML and a CHANGE REQUEST.
-
-HOW TO APPLY THE CHANGE:
-- If the request is GLOBAL or stylistic (e.g. "add animations", "change the colors", "make it modern", "improve spacing", "use a new font"), apply it CONSISTENTLY across the ENTIRE page — every relevant section (hero, features, pricing, testimonials, footer, etc.), NOT just the first/hero section.
-- If the request clearly targets ONE specific element or section, change only that part.
-- Either way, return the COMPLETE updated document and preserve the content/structure you are not changing.
-
-CRITICAL REQUIREMENTS:
-- Return the COMPLETE, updated HTML document (not a fragment, not a diff, not an explanation).
-- The document MUST keep this exact script in the <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-- Use Tailwind utility classes for all styling (no custom <style> CSS). For animation use Tailwind utilities (animate-*, transition-*, duration-*, hover:*, group-hover:*) on the relevant elements throughout the page.
-- Keep the design premium and cohesive.
-
-${EDIT_IMAGE_RULES}
-
-CRITICAL HARD RULES:
-1. Put ALL output ONLY into the message content.
-2. Do NOT use "reasoning", "analysis" or any hidden fields.
-3. Do NOT include explanations, notes, comments or markdown code fences.
-4. Output must start with <!DOCTYPE html> with nothing before or after the HTML.`
-                    }, {
-                        role: 'user',
-                        content: `${historyBlock}CHANGE REQUEST:\n${message}\n\nThis is a single-page site. Apply the change across the WHOLE page where relevant, and keep the in-page section navigation (nav anchor links to #section-ids) working.\n\nCURRENT HTML:\n${sourceHtml}`
-                    }
-                ]
+                model: editModel(project.model),
+                max_tokens: 24000,
+                messages: buildRevisionMessages(historyBlock, message, sourceHtml),
             });
 
-            const generated = extractHtml(response.choices?.[0]?.message?.content);
+            const raw = response.choices?.[0]?.message?.content;
+            const summary = parseEditSummary(raw);
+
+            if (summary.intent === 'new-site') {
+                await refundCharge(chargeId);
+                await projectRepository.addMessage(projectId, 'assistant', "That sounds like a brand-new website rather than a change to this one, so I left your site as it is and refunded your credits. Start a new project from your dashboard to build it.");
+                throw new NewSiteRequestError();
+            }
+
+            const generated = stripEditSummary(extractHtml(raw));
             const truncated = response.choices?.[0]?.finish_reason === 'length';
 
             if (!looksLikeHtml(generated) || truncated) {
@@ -88,11 +71,14 @@ CRITICAL HARD RULES:
             let enhanced = await enhanceImages(generated).catch(() => generated);
             enhanced = tagSectionsIfMissing(enhanced);
 
+            const drift = measureContentDrift(sourceHtml, enhanced);
+            console.log(`[edit] ${JSON.stringify({ projectId, tier: project.model ?? 'free', model: response?.model ?? null, changes: summary.changes.length, ...drift })}`);
+
             const version = await projectRepository.createVersion({
                 code: enhanced, description: message.slice(0, 60), projectId,
             });
 
-            await projectRepository.addMessage(projectId, 'assistant', "I've made the changes to your website. You can preview it now.");
+            await projectRepository.addMessage(projectId, 'assistant', describeChanges(summary.changes));
 
             await projectRepository.update(projectId, {
                 current_code: enhanced,
@@ -115,8 +101,13 @@ CRITICAL HARD RULES:
         let chargeId: string | null = null;
         let lockToken: string | null = null;
         try {
-            const owned = await projectRepository.findOwnedId(projectId, userId);
-            if (!owned) throw new NotFoundError('Project not found');
+            const project = await projectRepository.findOwned(projectId, userId);
+            if (!project) throw new NotFoundError('Project not found');
+
+            const pageSize = project.current_code?.length ?? 0;
+            if (pageSize && html.length > pageSize * 0.6) {
+                throw new BadRequestError('That selection covers most of the page — select a smaller section, or use the chat for page-wide changes.');
+            }
 
             lockToken = await acquireProjectLock(projectId, userId, LOCK_TTL.edit);
             if (!lockToken) throw new ConflictError('A change is already being applied to this project — please wait.');
@@ -126,29 +117,14 @@ CRITICAL HARD RULES:
             if (!chargeId) throw new InsufficientCreditsError('Add more credits to make changes');
 
             const response = await createChatCompletion({
-                model: EDIT_MODEL,
+                model: editModel(project.model),
                 max_tokens: 6000,
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are an expert web developer. You are given ONE HTML element (a section or component) from a Tailwind CSS page, plus a change request. Apply the change and return ONLY the updated HTML for that SAME element.
-
-RULES:
-- Return ONLY the element's HTML. The root tag must be the SAME kind of element. No <html>, <head> or <body> wrapper.
-- Use Tailwind utility classes for styling and animation (transition, duration-300, hover:*, animate-*).
-- Do NOT include explanations, comments, or markdown code fences. Output the HTML only.
-
-${EDIT_IMAGE_RULES}`
-                    },
-                    {
-                        role: 'user',
-                        content: `CHANGE REQUEST:\n${message}\n\nELEMENT HTML:\n${html}`
-                    }
-                ]
+                messages: buildElementEditMessages(message, html),
             });
 
             const newHtml = extractHtml(response.choices?.[0]?.message?.content);
-            if (!newHtml || !/<[a-z][\s\S]*>/i.test(newHtml)) {
+            const truncated = response.choices?.[0]?.finish_reason === 'length';
+            if (!newHtml || truncated || !/<[a-z][\s\S]*>/i.test(newHtml)) {
                 await refundCharge(chargeId);
                 throw new UpstreamError('Could not edit that element — credits refunded. Try rephrasing.');
             }

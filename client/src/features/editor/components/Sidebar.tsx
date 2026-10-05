@@ -87,6 +87,7 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
           toast.error(error?.response?.data?.message || error.message);
           console.error(error);
           clearRevisionTimer()
+          fetchProject();
         }
     }
 
@@ -128,7 +129,7 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
                       </div>
                     )}
                     <div
-                      className={`max-w-[80%] p-2 px-4 rounded-2xl shadow-sm text-sm mt-5 leading-relaxed ${
+                      className={`max-w-[80%] p-2 px-4 rounded-2xl shadow-sm text-sm mt-5 leading-relaxed whitespace-pre-line ${
                         isUser
                           ? 'bg-primary text-primary-foreground rounded-tr-none'
                           : 'rounded-tl-none bg-secondary text-foreground'

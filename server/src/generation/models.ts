@@ -1,5 +1,6 @@
 
 import { CREDIT_COSTS, PREMIUM_MULTIPLIER } from '@/shared/constants.js';
+import { EDIT_MODEL } from '@/generation/llm.js';
 
 export type Tier = 'free' | 'premium';
 
@@ -37,3 +38,6 @@ export const generationCost = (tier?: string | null): number =>
 
 export const resolveModel = (tier?: string | null): string | null =>
   tier === 'premium' ? PREMIUM_MODEL : null;
+
+export const editModel = (tier?: string | null): string =>
+  tier === 'premium' ? PREMIUM_MODEL : EDIT_MODEL;

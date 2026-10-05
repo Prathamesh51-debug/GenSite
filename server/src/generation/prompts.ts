@@ -100,3 +100,58 @@ Hard rules: it is ONE page — describe SECTIONS, never separate pages or files.
   },
   { role: 'user' as const, content: prompt },
 ];
+
+// Chat revision: rewrite the whole page for a change request.
+export const buildRevisionMessages = (history: string, message: string, html: string) => [
+  {
+    role: 'system' as const,
+    content: `You are an expert web designer and developer editing an existing single-page website. You are given the CURRENT HTML and a CHANGE REQUEST.
+
+HOW TO APPLY THE CHANGE:
+- SPECIFIC request (it names a section, element, text, colour or feature, e.g. "change the menu prices", "make the hero button green"): change only that part and keep everything else exactly as it is.
+- BROAD request (e.g. "enhance the design", "make it better", "make it more modern", "make it premium", "improve it", "redesign it"): make 3 to 5 CLEARLY VISIBLE improvements across the page, such as a bolder hero, a stronger type scale, richer section backgrounds, upgraded cards, a better spacing rhythm or tasteful motion. Someone comparing before and after must see the difference at a glance; returning a near-identical page is a failure.
+- GLOBAL stylistic request (e.g. "change the colors", "add animations", "use a new font"): apply it consistently to EVERY relevant section, not just the hero.
+- Keep the business, brand name and what the site is about unless the request explicitly asks to rename or re-word them. Keep the existing section ids so the nav keeps working.
+- DIFFERENT WEBSITE: if the request asks for a site about a different business, product or person, or to replace this site with a new one (e.g. "make it a gym website instead", "build me a new site for my law firm"), do NOT build it. Output ONLY this line and nothing else:
+<!-- intent: new-site -->
+
+OUTPUT FORMAT, in this exact order:
+1. A summary comment listing what you changed, one short line per visible change (3 to 5 lines for a broad request, 1 to 3 for a specific one), with no double hyphens inside the lines:
+<!-- intent: edit
+- first visible change
+- second visible change
+-->
+2. The COMPLETE updated HTML document, starting with <!DOCTYPE html>.
+
+CRITICAL REQUIREMENTS:
+- Return the COMPLETE, updated HTML document (not a fragment, not a diff, not an explanation).
+- The document MUST keep this exact script in the <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+- Use Tailwind utility classes for all styling (no custom <style> CSS). For animation use Tailwind utilities (animate-*, transition-*, duration-*, hover:*, group-hover:*) on the relevant elements throughout the page.
+- Keep the design premium and cohesive.
+
+${EDIT_IMAGE_RULES}
+
+CRITICAL HARD RULES:
+1. Put ALL output ONLY into the message content.
+2. Do NOT use "reasoning", "analysis" or any hidden fields.
+3. Do NOT include explanations, other comments or markdown code fences.
+4. Output only the summary comment followed by the HTML document, nothing before or after.`,
+  },
+  { role: 'user' as const, content: `${history}CHANGE REQUEST:\n${message}\n\nThis is a single-page site. Keep the in-page section navigation (nav anchor links to #section-ids) working.\n\nCURRENT HTML:\n${html}` },
+];
+
+// Element edit: rewrite one selected element.
+export const buildElementEditMessages = (message: string, html: string) => [
+  {
+    role: 'system' as const,
+    content: `You are an expert web developer. You are given ONE HTML element (a section or component) from a Tailwind CSS page, plus a change request. Apply the change and return ONLY the updated HTML for that SAME element.
+
+RULES:
+- Return ONLY the element's HTML. The root tag must be the SAME kind of element. No <html>, <head> or <body> wrapper.
+- Use Tailwind utility classes for styling and animation (transition, duration-300, hover:*, animate-*).
+- Do NOT include explanations, comments, or markdown code fences. Output the HTML only.
+
+${EDIT_IMAGE_RULES}`,
+  },
+  { role: 'user' as const, content: `CHANGE REQUEST:\n${message}\n\nELEMENT HTML:\n${html}` },
+];
