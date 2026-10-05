@@ -50,7 +50,7 @@ export const createChatCompletion = async (
   for (const model of models) {
     for (let attempt = 0; attempt <= retriesPerModel; attempt++) {
       try {
-        const res: any = await openai.chat.completions.create({ ...params, model }, signal ? { signal } : undefined);
+        const res: any = await openai.chat.completions.create({ ...params, usage: { include: true }, model } as any, signal ? { signal } : undefined);
 
         if (res?.error) {
           const code = res.error.code ?? res.error.status;
@@ -59,7 +59,14 @@ export const createChatCompletion = async (
           logLlm({ model, event: code === 429 ? 'rate_limited' : 'provider_error', code });
           break;
         }
-        logLlm({ model, event: 'ok', fallback: model !== requested, tokens: res?.usage?.total_tokens ?? null });
+        logLlm({
+          model,
+          event: 'ok',
+          fallback: model !== requested,
+          provider: res?.provider ?? null,
+          tokens: res?.usage?.total_tokens ?? null,
+          costUsd: res?.usage?.cost ?? null,
+        });
         traceGeneration({ model, latencyMs: Date.now() - started, usage: res?.usage, success: true, requested }).catch(() => {});
         return res;
       } catch (error: any) {

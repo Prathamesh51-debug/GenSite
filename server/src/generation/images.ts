@@ -1,10 +1,10 @@
 // Image post-processing for generated sites (PRD R1).
 //
-// The LLM emits <img> tags whose src points at loremflickr (topic-matching but
-// amateur/mediocre). After generation we rewrite those URLs to point at a better
-// photo source. This is a plain HTTP call to a stock-photo *search* API — NOT an
-// LLM/agent — and it is fully optional: with no key (or on any error) the original
-// loremflickr URL is kept, so generation never breaks.
+// The LLM emits <img> tags whose src is a loremflickr URL. loremflickr itself no
+// longer serves images, so the URL is only a placeholder carrying the size and the
+// keywords. After generation every such URL is rewritten: to a matching Pexels photo
+// when PEXELS_API_KEY is set and the search finds one, otherwise to a stable
+// picsum.photos image of the same size, so a page never ships a broken image.
 //
 // Providers sit behind a small adapter so swapping Pexels → Unsplash → Pixabay is a
 // one-file change; the generation pipeline only ever calls `enhanceImages(html)`.
@@ -76,13 +76,25 @@ const pexels: ImageProvider = {
 // The active provider. Swap this line to change sources; the pipeline is unaffected.
 const provider: ImageProvider = pexels;
 
+export const fallbackPhoto = (keyword: string, lock: number, w: number, h: number): string => {
+  const seed = `${keyword.split(/[\s,+]+/).filter(Boolean)[0] || 'photo'}-${lock}`.toLowerCase();
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${w}/${h}`;
+};
+
+const decodeKeyword = (raw: string): string => {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
+
 /**
- * Rewrite loremflickr <img>/og:image URLs in `html` to curated photos from the
- * active provider. Env-gated and fail-safe: returns `html` unchanged when the
- * provider is unconfigured or every lookup misses.
+ * Rewrite every loremflickr <img>/og:image URL in `html`: a matching photo from the
+ * active provider when it finds one, otherwise a stable fallback photo that always loads.
  */
 export const enhanceImages = async (html: string): Promise<string> => {
-  if (!process.env.PEXELS_API_KEY || !html) return html;
+  if (!html) return html;
 
   const matches = [...html.matchAll(LOREMFLICKR)];
   if (!matches.length) return html;
@@ -95,15 +107,11 @@ export const enhanceImages = async (html: string): Promise<string> => {
       if (replacements.has(full)) return;
       const w = Number(m[1]);
       const h = Number(m[2]);
-      const keyword = decodeURIComponent(m[3]);
+      const keyword = decodeKeyword(m[3]);
       const lock = m[4] ? Number(m[4]) : 0;
       if (!w || !h) return;
-      try {
-        const url = await provider.find(keyword, orientationOf(w, h), w, h, lock);
-        if (url) replacements.set(full, url);
-      } catch {
-        /* keep fallback */
-      }
+      const url = await provider.find(keyword, orientationOf(w, h), w, h, lock).catch(() => null);
+      replacements.set(full, url ?? fallbackPhoto(keyword, lock, w, h));
     })
   );
 
