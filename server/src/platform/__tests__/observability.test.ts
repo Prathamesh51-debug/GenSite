@@ -7,6 +7,7 @@ const lf = vi.hoisted(() => {
   return { generation, update, trace, shutdownAsync: vi.fn(async () => {}) };
 });
 vi.mock('langfuse', () => ({ Langfuse: class { trace = lf.trace; shutdownAsync = lf.shutdownAsync; } }));
+vi.mock('@sentry/node', () => ({ init: vi.fn(), captureException: vi.fn() }));
 
 const load = async () => ({
   ...(await import('@/platform/observability.js')),

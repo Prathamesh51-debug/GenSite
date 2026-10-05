@@ -291,7 +291,7 @@ const BuildCard = () => {
         transition={{ duration: 0.4 }}
         className="mt-6 font-serif-display italic text-[15px] text-primary"
       >
-        🎉 your site is ready — built in 4.2s
+        🎉 your site is ready to publish
       </motion.p>
     </div>
   );
@@ -334,7 +334,7 @@ const Home = () => {
             <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> Start free</span>
               <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> No credit card</span>
-              <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> ~4s a build</span>
+              <span className="flex items-center gap-1.5"><CheckIcon className="size-4 text-primary" /> Edit it by chatting</span>
             </motion.div>
           </div>
 

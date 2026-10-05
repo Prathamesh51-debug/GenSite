@@ -11,6 +11,8 @@ import { generationService } from '@/project/generation.service.js';
 import { log } from '@/platform/log.js';
 import { reportError, startAction, endAction } from '@/platform/observability.js';
 
+const streamPreview = process.env.STREAM_PREVIEW === 'true';
+
 export const streamGeneration = async (req: Request, res: Response) => {
     const userId = req.userId!;
     const { projectId } = req.params as { projectId: string };
@@ -65,7 +67,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         const result = await generateSite(project.initial_prompt, {
             signal: abort.signal,
             onProgress: (message) => { try { send({ type: 'progress', message }); } catch {} },
-            onChunk: (html) => { try { send({ type: 'chunk', html }); } catch {} },
+            onChunk: streamPreview ? (html) => { try { send({ type: 'chunk', html }); } catch {} } : undefined,
             model: project.model,
         });
 
