@@ -1,8 +1,10 @@
 import { AccountSettingsCards, ChangePasswordCard, DeleteAccountCard } from "@daveyplate/better-auth-ui"
 import { SketchUnderline } from "@/shared/components/ui/HandDrawn"
+import AuthUIScope from "@/features/auth/components/AuthUIScope"
 
 const Settings = () => {
   return (
+    <AuthUIScope>
     <div className="w-full p-4 flex justify-center items-center min-h-[90vh]
     flex-col gap-6 py-12 text-foreground">
       <div className="w-full max-w-xl mx-auto text-center mb-2">
@@ -34,7 +36,7 @@ const Settings = () => {
             }}/>
         </div>
     </div>
-    
+    </AuthUIScope>
   )
 }
 

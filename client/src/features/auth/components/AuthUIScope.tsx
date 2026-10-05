@@ -4,7 +4,7 @@ import { useNavigate, NavLink } from "react-router-dom"
 
 const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export default function AuthUIScope({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
 
   return (

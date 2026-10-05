@@ -183,6 +183,13 @@ The tutorial-era eye-candy was stripped for a lighter bundle and lower GPU load 
 - Removed the **Spline 3D hero** (−367 lines) and the interactive-hero animation stack — `@tsparticles/*`, `gsap`, `motion`, `ogl`, `@types/three` (−2,822 lines).
 - Dropped **`helmet`** in favour of hand-set security headers.
 - **Kept lean:** CSS/Tailwind animation only, Lenis for smooth scroll.
+- **Auth UI loaded only where it's used.** The sign-in UI library (forms, 2FA QR codes, captcha loader) was ~41% of the main bundle. It now loads only on the sign-in and settings pages, and for signed-in users the avatar menu loads after the page renders. Measured on the landing page, logged out, Chrome "Slow 4G", median of 3:
+
+| Landing page | Before | After |
+| --- | --- | --- |
+| Main bundle | 835.6 KB (257.4 KB gzip) | **331.6 KB (108.6 KB gzip)** |
+| JavaScript downloaded | 309 KB | **164 KB (−47%)** |
+| First contentful paint | 3.07 s | **2.22 s (−28%)** |
 
 ## 🧰 Tech stack
 

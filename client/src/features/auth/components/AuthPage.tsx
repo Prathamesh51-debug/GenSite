@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { AuthView } from "@daveyplate/better-auth-ui"
 import { toast } from "sonner"
 import AuthBot, { type BotMode } from '@/features/auth/components/AuthBot'
+import AuthUIScope from '@/features/auth/components/AuthUIScope'
 import { authClient } from "@/shared/api/auth-client"
 
 const copyMap: Record<string, { h: string; s: string }> = {
@@ -12,7 +13,7 @@ const copyMap: Record<string, { h: string; s: string }> = {
   "reset-password": { h: "Set a new password", s: "Choose something strong and easy to remember." },
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
   const { pathname } = useParams()
   const copy = copyMap[pathname ?? "sign-in"] ?? { h: "Account", s: "Manage your access." }
   const [botMode, setBotMode] = useState<BotMode>('idle')
@@ -121,5 +122,13 @@ export default function AuthPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <AuthUIScope>
+      <AuthPageContent />
+    </AuthUIScope>
   )
 }

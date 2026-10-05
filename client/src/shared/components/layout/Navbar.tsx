@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authClient } from '@/shared/api/auth-client';
-import { UserButton } from '@daveyplate/better-auth-ui'
 import { MenuIcon, XIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useCredits } from '@/features/billing/hooks/use-credits';
 import { useTheme } from '@/shared/lib/theme';
+
+const UserMenu = lazy(() => import('@/features/auth/components/UserMenu'));
+
+const UserMenuSlot = () => (
+  <Suspense fallback={<span className="block size-8 rounded-full bg-secondary" aria-hidden="true" />}>
+    <UserMenu />
+  </Suspense>
+);
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -108,7 +115,7 @@ const Navbar = () => {
                 Credits: <span className='text-clay font-semibold'>{credits ?? '—'}</span>
               </Link>
               <div className="animate-scale-in animate-delay-200">
-                <UserButton size='icon' />
+                <UserMenuSlot />
               </div>
               </>
             )}
@@ -140,7 +147,7 @@ const Navbar = () => {
                 <Link to="/pricing" onClick={() => setMenuOpen(false)} className="bg-card px-4 py-1.5 text-sm border border-border text-muted-foreground rounded-full">
                   Credits: <span className="text-clay font-semibold">{credits ?? '—'}</span>
                 </Link>
-                <UserButton size="icon" />
+                <UserMenuSlot />
               </div>
             ) : (
               <button
