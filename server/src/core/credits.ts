@@ -1,4 +1,4 @@
-import prisma from '@/platform/db/prisma.js';
+import prisma from '@/platform/prisma.js';
 
 export type ChargeKind = 'generate' | 'revision' | 'elementEdit';
 

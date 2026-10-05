@@ -43,7 +43,7 @@ GenSite didn't start here. It began as a tutorial-style clone and was rebuilt, o
 The rewrite paid off across four dimensions — generation cost, frontend weight, uptime, and code structure:
 
 <div align="center">
-  <img src="assets/roi-overview.svg" alt="Impact at a glance: LLM calls 5→1, ~$0.01 per site free tier, −2.8k lines and 7 libs cut, zero cold starts or DB pauses" width="840">
+  <img src="assets/roi-overview.svg" alt="Impact at a glance: LLM calls 5→1, ~$0.01 per site free tier, −2.8k lines and 7 libs cut, 38 unit tests in CI" width="840">
 </div>
 
 | Metric | Before | After |
@@ -52,8 +52,8 @@ The rewrite paid off across four dimensions — generation cost, frontend weight
 | Cost / site — Free | — | **~$0.01** (`gpt-oss-120b`) |
 | Cost / site — Premium | — | **~$0.02** (`gpt-5-mini`) |
 | Frontend weight | Spline + 7 animation libs | **−2,822 lines**, 7 packages removed |
-| Cold starts / DB pauses | frequent | **0** (keep-alive worker) |
-| Code structure | flat controllers/pages | **50 + 28 file** layered restructure |
+| Tests | 20 (HTML helpers only) | **38**, covering the credit ledger, locks, Stripe billing and the sanitizer |
+| Code structure | flat controllers/pages | layered, **one folder per feature** (server: 42 files in 9 folders) |
 
 > Costs are measured per generated site on OpenRouter.
 
@@ -110,36 +110,29 @@ flowchart LR
     API --> AUTH["better-auth<br/>(sessions)"]
 ```
 
-The codebase is organized into **feature modules** with clear separation of concerns — a 50-file server and 28-file client restructure into vertical slices where the HTTP layer never touches the database:
+The codebase is organized by **feature** with clear separation of concerns — each feature folder holds its routes, controllers, services, repository and schemas, and the HTTP layer never touches the database:
 
 <div align="center">
-  <img src="assets/architecture.svg" alt="Layered architecture: server interface → application → data → domain slices plus generation/core/platform/shared; client app/pages/features/shared" width="840">
+  <img src="assets/architecture.svg" alt="Layered architecture: server routes → services → repositories → schemas, one folder per feature plus generation/core/platform/shared; client app/pages/features/shared" width="840">
 </div>
 
-**Server** — each domain is a vertical slice; interface (HTTP) is thin and never touches the database:
+**Server** — one folder per feature; the HTTP layer is thin and never touches the database:
 
 ```
-interface (HTTP) → application (business rules) → data (Prisma) → domain (Zod schema)
+*.routes / *.controller (HTTP) → *.service (business rules) → *.repository (Prisma) · *.schema (Zod)
 ```
 
 ```
 server/src/
 ├── app.ts · server.ts          # app assembly (headers/CORS/CSRF/routers/errors) + bootstrap
-├── generation/                 # the AI pipeline
-│   ├── orchestrator/           #   generateSite · generateSinglePage · enhancePrompt
-│   ├── prompts/                #   single-page + enhancement prompts · DESIGN_GUIDE
-│   ├── providers/              #   model lists · fallback chain · tiers/costs
-│   └── images/                 #   Pexels image provider + post-process
-├── modules/
-│   ├── project/                # crud · generation (SSE) · revisions · element edits
-│   ├── user/                   # credits, projects, publish, catalogs
-│   └── billing/                # Stripe checkout + webhook
-├── core/                       # pure logic: credits, html, origins, plans (unit-tested)
-├── platform/                   # auth · db · email · observability · storage
-└── shared/                     # config (constants) · http (AppError/errorHandler) · middleware
+├── project/                    # generation (SSE) · revisions · element edits · saves · rollback · DB locks
+├── user/                       # projects, publish, credits balance, plan + tier catalogs
+├── billing/                    # Stripe checkout + webhook
+├── generation/                 # the AI pipeline: generate · prompts · llm (fallback chain) · models · images
+├── core/                       # pure logic: credit ledger, html, sanitizer, plans, origins (unit-tested)
+├── platform/                   # auth · prisma · email · observability
+└── shared/                     # constants · AppError/errorHandler · validation · auth + rate-limit middleware
 ```
-
-Each `modules/*` slice is split into `interface/` (controllers + routes), `application/` (services), `data/` (repositories), and `domain/` (schemas).
 
 **Client** — feature-based, `@/…` alias imports:
 
@@ -189,7 +182,7 @@ The tutorial-era eye-candy was stripped for a lighter bundle and lower GPU load 
 
 - Removed the **Spline 3D hero** (−367 lines) and the interactive-hero animation stack — `@tsparticles/*`, `gsap`, `motion`, `ogl`, `@types/three` (−2,822 lines).
 - Dropped **`helmet`** in favour of hand-set security headers.
-- **Kept lean:** CSS/Tailwind animation only, Lenis for smooth scroll, and a keep-alive GitHub Action that warms Render and holds Supabase active — no more cold starts or DB auto-pauses.
+- **Kept lean:** CSS/Tailwind animation only, Lenis for smooth scroll.
 
 ## 🧰 Tech stack
 
@@ -203,20 +196,21 @@ The tutorial-era eye-candy was stripped for a lighter bundle and lower GPU load 
 | **Images** | Pexels API (topic-matching stock photos) |
 | **Payments** | Stripe (Checkout + signed webhooks) |
 | **Observability** | Langfuse (LLM traces) · Sentry (errors) — both optional, env-gated |
-| **Testing / CI** | Vitest · GitHub Actions (typecheck · build · test) |
+| **Testing / CI** | Vitest · GitHub Actions (lint · typecheck · test) |
 | **Hosting** | Vercel (client) · Render (API) · Supabase (DB) |
 
 ## 🛠️ Engineering highlights & design decisions
 
 The interesting parts are the trade-offs, not the happy path:
 
-- **Prompt enhancement for vague requests.** Short prompts (< 12 words) are expanded by a cheap free model into a maximally prescriptive single-page brief (invented brand, exact hex palette, exact Google Fonts, per-section content/layout/CTA) so even a weak model renders a premium result. The enhancer re-throws user cancels, falls back to the raw prompt on any error, and the generator is told the user's own words override the brief. (`server/src/generation/orchestrator/generate.ts`)
+- **Prompt enhancement for vague requests.** Short prompts (< 12 words) are expanded by a cheap free model into a maximally prescriptive single-page brief (invented brand, exact hex palette, exact Google Fonts, per-section content/layout/CTA) so even a weak model renders a premium result. The enhancer re-throws user cancels, falls back to the raw prompt on any error, and the generator is told the user's own words override the brief. (`server/src/generation/generate.ts`)
 - **Truncation-guarded single-page generation.** Generation runs under a token cap and retries once on `finish_reason === 'length'`, keeping the fullest valid attempt — so large sites never ship half-written. Nav links are constrained to real in-page `#section` anchors with smooth scroll.
 - **Two-tier model routing with a downgrade refund.** `createChatCompletion` tries the premium model, then falls through an ordered list of free models. If a *premium* build ends up served by a free model, the premium surcharge is detected (via the response model) and **refunded**. The active models live in one place and are overridable by env.
-- **Atomic, race-safe credit metering.** Credits are charged with a single conditional `UPDATE ... WHERE credits >= amount`, so concurrent requests can't overspend. The **authoritative charge happens at generation time** (not project creation), and refunds only ever reverse a charge that actually happened — a failed build is refunded and never silently re-run for free.
+- **Atomic, race-safe credit metering.** Credits are charged with a single conditional `UPDATE ... WHERE credits >= amount`, so concurrent requests can't overspend. Every charge is also written to a `CreditCharge` **ledger** as `pending` and then settled or refunded **exactly once**; a background sweeper refunds charges left pending by a crash. The **authoritative charge happens at generation time** (not project creation), and a failed build is refunded and never silently re-run for free.
 - **Resilient AI layer.** Free LLM endpoints are rate-limited and frequently deprecated, so every call **retries transient `429`s and falls back across the model list on any provider error**.
-- **Streaming generation over SSE.** The client reads the build off `fetch` (not `EventSource`), with an in-flight guard + cancel via a per-process `AbortController` map, and a per-project edit lock so two writers can't race the "current version."
+- **Streaming generation over SSE.** The client reads the build off `fetch` (not `EventSource`), with cancel via an `AbortController`. Generations, revisions, saves and rollbacks take a **per-project lease stored in Postgres** (lock token + expiry), so two writers can't race the "current version" — even across server instances, and a crashed holder's lease simply expires.
 - **Untrusted AI HTML is sandboxed.** Public/community/preview views render generated HTML in a `sandbox="allow-scripts"` iframe (no `allow-same-origin`) so AI output can't touch the host app or its cookies.
+- **Sign-up abuse protection.** Free credits attract throwaway accounts, so sign-ups block disposable email domains, are rate-limited per IP, can require a Cloudflare Turnstile captcha, and AI usage by never-paid accounts has a daily circuit breaker (`FREE_DAILY_AI_CAP`).
 - **Idempotent Stripe billing.** Credits are granted from the **signature-verified webhook**, keyed by the unique `stripeSessionId`; refunds/disputes claw credits back exactly once, all inside DB transactions.
 - **Security by default.** Hand-set security headers (`nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS in prod), a CORS + Origin-based CSRF check driven by a trusted-origins allowlist, tiered rate limiters, a bounded JSON body, and a `/healthz` probe that also reports DB reachability.
 - **Connection pooling.** Runtime traffic uses Supabase's **transaction pooler (PgBouncer)** via `DATABASE_URL`; Prisma migrations use a **direct connection** (`DIRECT_URL`) — avoiding connection exhaustion.
@@ -270,6 +264,9 @@ npm run dev                     # app on http://localhost:5173
 | `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` | Stripe keys (billing) |
 | `RESEND_API_KEY` · `EMAIL_FROM` | _(optional)_ enable verification emails; unset ⇒ links logged to console |
 | `LANGFUSE_SECRET_KEY` · `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_BASEURL` | _(optional)_ LLM tracing |
+| `TURNSTILE_SECRET_KEY` | _(optional)_ require a Cloudflare Turnstile captcha on sign-up (pair with `VITE_TURNSTILE_SITE_KEY`) |
+| `FREE_DAILY_AI_CAP` | _(optional)_ daily cap on AI actions by never-paid accounts (default 300, `0` disables) |
+| `BLOCKED_EMAIL_DOMAINS` | _(optional)_ extra comma-separated sign-up domains to block |
 | `SENTRY_DSN` | _(optional)_ error monitoring |
 | `NODE_ENV` / `PORT` | environment / listen port (injected by most hosts) |
 
@@ -278,10 +275,11 @@ npm run dev                     # app on http://localhost:5173
 | Variable | Description |
 | --- | --- |
 | `VITE_BASEURL` | Backend API base URL (e.g. `http://localhost:3000`) — baked in at **build time** |
+| `VITE_TURNSTILE_SITE_KEY` | _(optional)_ Turnstile site key; shows the captcha on sign-up |
 
 ## 💳 Credits & tiers
 
-New accounts start with **25 credits**. Costs are centralized in `server/src/shared/config/constants.ts`:
+New accounts start with **25 credits**. Costs are centralized in `server/src/shared/constants.ts`:
 
 | Action | Cost |
 | --- | --- |
@@ -299,7 +297,7 @@ Failed builds are refunded automatically, and a premium build that falls back to
 npm run dev        # tsx watch
 npm run build      # prisma generate && tsc && tsc-alias
 npm start          # node dist/server.js
-npm test           # Vitest (pure-function tests under src/core/__tests__)
+npm test           # Vitest (credit ledger, locks, Stripe billing, sanitizer, HTML helpers)
 npx tsc --noEmit   # typecheck
 
 # client
@@ -309,7 +307,7 @@ npm run lint       # ESLint
 npx tsc --noEmit -p tsconfig.app.json
 ```
 
-CI (`.github/workflows/ci.yml`) runs typecheck + build for both apps and the server test suite on every push/PR.
+CI (`.github/workflows/ci.yml`) is a single job: server typecheck + tests and client lint + typecheck on every push/PR (docs-only changes are skipped). Vercel builds the client on deploy.
 
 ## 🚢 Deployment
 
@@ -323,7 +321,7 @@ CI (`.github/workflows/ci.yml`) runs typecheck + build for both apps and the ser
 
 Subscribe the Stripe webhook to `checkout.session.completed`, `payment_intent.succeeded`, `charge.refunded`, and `charge.dispute.funds_withdrawn`.
 
-> 💡 A keep-alive GitHub Action pings `/healthz` on a schedule to warm the free Render tier and keep Supabase from auto-pausing.
+> 💡 Two pingers hit `/healthz`: an external cron every 10 minutes during the day keeps the free Render tier warm, and a once-a-day GitHub Action keeps Supabase from auto-pausing (it pauses after 7 idle days). A paused Supabase project can only be restored from its dashboard.
 
 ## 🔒 Privacy & Terms
 

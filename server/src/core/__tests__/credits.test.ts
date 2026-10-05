@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/platform/db/prisma.js', () => ({ default: {} }));
+vi.mock('@/platform/prisma.js', () => ({ default: {} }));
 
 import { chargeCredits, settleCharge, refundCharge, sweepStaleCharges, STALE_CHARGE_MS } from '../credits.js';
 

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { initSentry } from '@/platform/observability/observability.js';
+import { initSentry } from '@/platform/observability.js';
 import { createApp } from '@/app.js';
 import { startChargeSweeper } from '@/core/credits.js';
 

@@ -1,17 +1,12 @@
 import  { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Project } from '@/types';
-import { iframeScript } from '@/assets/assets';
+import { iframeScript } from '@/features/editor/lib/iframeScript';
 import EditorPanel from './EditorPanel';
 import LoaderSteps from '@/shared/components/ui/LoaderSteps';
 import api from '@/shared/api/axios';
 import { toast } from 'sonner';
 import { emitCreditsChanged } from '@/features/billing/lib/credits-bus';
 import { SparklesIcon } from 'lucide-react';
-
-// Injected into every previewed page so clicks on internal *.html links switch the
-// active page IN-PLACE (postMessage to the parent) rather than trying to navigate the
-// sandboxed srcDoc iframe, which has no real sibling files.
-const navScript = `<script id="__nav">(function(){document.addEventListener('click',function(e){var el=e.target;while(el&&el.tagName!=='A')el=el.parentElement;if(!el)return;var href=el.getAttribute('href')||'';if(href.slice(-5).toLowerCase()==='.html'&&href.indexOf('://')===-1){e.preventDefault();var p=href;if(p.charAt(0)==='.'&&p.charAt(1)==='/')p=p.slice(2);else if(p.charAt(0)==='/')p=p.slice(1);parent.postMessage({type:'NAVIGATE',path:p},'*');}},true);})();</script>`;
 
 interface ProjectPreviewProps {
     project: Project;
@@ -20,10 +15,6 @@ interface ProjectPreviewProps {
     showEditorPanel?: boolean;
     streamingHtml?: string;
     statusText?: string;
-    // Optionally control the active page from the parent (so it survives a revision
-    // and can be sent with chat edits). When omitted, the component manages it itself.
-    activeFile?: string;
-    onActiveFileChange?: (path: string) => void;
     onGenerate?: () => void;
     onCancel?: () => void;
 }
@@ -34,36 +25,12 @@ export interface ProjectPreviewRef {
 }
 
 const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
-    ({ project, isGenerating, device = 'desktop', showEditorPanel = true, streamingHtml = '', statusText = '', activeFile: controlledActiveFile, onActiveFileChange, onGenerate, onCancel }, ref) => {
+    ({ project, isGenerating, device = 'desktop', showEditorPanel = true, streamingHtml = '', statusText = '', onGenerate, onCancel }, ref) => {
         const iframeRef = useRef<HTMLIFrameElement>(null);
         const saveTimer = useRef<number | null>(null);
         const [selectedElement, setSelectedElement] = useState<any>(null);
         const [aiLoading, setAiLoading] = useState(false);
-        const [internalActiveFile, setInternalActiveFile] = useState('index.html');
-        // Controlled by the parent when `activeFile` is provided, else self-managed.
-        const activeFile = controlledActiveFile ?? internalActiveFile;
-        const setActiveFile = (path: string) => {
-            if (onActiveFileChange) onActiveFileChange(path);
-            else setInternalActiveFile(path);
-        };
-
-        // Multi-page: the file set (or null for single-file / public views).
-        const files = project.files || null;
-        const pageNames = files ? Object.keys(files) : [];
-        const isMulti = pageNames.length > 1;
-        const activeHtml = (files && files[activeFile]) || project.current_code || '';
-        // Per-file editing: every page is editable in the editor; the save targets the
-        // active file.
         const editingActive = showEditorPanel;
-        const filesRef = useRef(files);
-        filesRef.current = files;
-
-        // Reset to the home page when the project or version changes — but only when
-        // UNcontrolled. A controlling parent decides when to reset (e.g. keeps you on
-        // the page you just revised instead of snapping back to Home).
-        useEffect(() => {
-            if (controlledActiveFile === undefined) setInternalActiveFile('index.html');
-        }, [project.id, project.current_version_index, controlledActiveFile]);
 
         // While a generation/revision is applying, close any open element editor and
         // stop treating the iframe as editable — otherwise a manual tweak made mid-run
@@ -97,16 +64,13 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
             });
             clone.querySelector('#ai-preview-style')?.remove();
             clone.querySelector('#ai-preview-script')?.remove();
-            clone.querySelector('#__nav')?.remove();
             return '<!DOCTYPE html>\n' + clone.outerHTML;
         };
 
-        // Save the ACTIVE page (multi-page aware). The server updates files[activeFile]
-        // and keeps current_code mirroring the home page.
         const saveActive = async () => {
             const code = readCleanCode();
             if (!code || !project.id) return null;
-            const { data } = await api.put(`/api/project/save/${project.id}`, { code, path: activeFile });
+            const { data } = await api.put(`/api/project/save/${project.id}`, { code });
             return data;
         };
 
@@ -148,9 +112,6 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
                         setSelectedElement(event.data.payload);
                     } else if (event.data.type === 'CLEAR_SELECTION') {
                         setSelectedElement(null);
-                    } else if (event.data.type === 'NAVIGATE') {
-                        const path = event.data.path;
-                        if (filesRef.current && filesRef.current[path]) setActiveFile(path);
                     }
                 }
             };
@@ -225,13 +186,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
             if (!html || typeof html !== 'string') return "";
             let out = html;
 
-            // In-preview page navigation (multi-page). Harmless for single-page sites,
-            // which use #anchors, not *.html links.
-            if (!out.includes('id="__nav"')) {
-                out = out.includes('</body>') ? out.replace('</body>', navScript + '</body>') : out + navScript;
-            }
-
-            // Element-selection tooling — only on the editable (home) page.
+            // Element-selection tooling — only in the editor.
             if (editingActive && !out.includes('ai-preview-script')) {
                 out = out.includes('</body>') ? out.replace('</body>', iframeScript + '</body>') : out + iframeScript;
             }
@@ -245,33 +200,17 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(
             >
                 {project.current_code ? (
                     <div className="flex flex-col h-full">
-                        {isMulti && (
-                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-card/70 border-b border-border px-2 py-1.5" role="tablist" aria-label="Pages">
-                                {pageNames.map((name) => (
-                                    <button
-                                        key={name}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={activeFile === name}
-                                        onClick={() => setActiveFile(name)}
-                                        className={`shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors ${activeFile === name ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
-                                    >
-                                        {name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                         <div className="relative flex-1 overflow-hidden">
                             <iframe
                                 ref={iframeRef}
-                                srcDoc={injectPreview(activeHtml)}
+                                srcDoc={injectPreview(project.current_code)}
                                 className={`h-full max-sm:w-full ${resolutions[device]} mx-auto transition-all ${isGenerating ? 'pointer-events-none' : ''}`}
                                 sandbox={sandbox}
-                                // Remount only on identity changes (device / project / version / page).
+                                // Remount only on identity changes (device / project / version).
                                 // Content edits flow through the srcDoc prop, which reloads the frame on
                                 // its own — keying on content length risked a hash-collision showing a
                                 // stale page.
-                                key={device + '|' + (project.id || '') + '|' + (project.current_version_index || '') + '|' + activeFile}
+                                key={device + '|' + (project.id || '') + '|' + (project.current_version_index || '')}
                                 title="project-preview"
                             />
                             {editingActive && selectedElement && !isGenerating && (

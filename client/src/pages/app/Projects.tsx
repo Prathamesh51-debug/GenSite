@@ -50,9 +50,6 @@ const Projects = () => {
 
    const [streamHtml, setStreamHtml] = useState('')
    const [genStatus, setGenStatus] = useState('')
-   // Active page lives here (not inside ProjectPreview) so a chat revision can target
-   // the page the user is viewing, and the view stays on it after the edit applies.
-   const [activeFile, setActiveFile] = useState('index.html')
    const streamedRef = useRef<string | null>(null)
    const acRef = useRef<AbortController | null>(null)
    const autoConsumedRef = useRef(false)
@@ -97,25 +94,7 @@ const Projects = () => {
     el.remove();
    }
 
-   const downloadCode = async () =>{
-    const files = project?.files;
-    // Multi-page → download the whole site as a ZIP.
-    if (files && Object.keys(files).length > 1) {
-      try {
-        const JSZip = (await import('jszip')).default;
-        const zip = new JSZip();
-        const freshIndex = previewRef.current?.getCode(); // latest (possibly unsaved) home page
-        Object.entries(files).forEach(([path, html]) => {
-          zip.file(path, path === 'index.html' && freshIndex ? freshIndex : (html as string));
-        });
-        const blob = await zip.generateAsync({ type: 'blob' });
-        triggerDownload(blob, 'site.zip');
-      } catch {
-        toast.error('Could not build the ZIP — try again.');
-      }
-      return;
-    }
-    // Single page → one index.html.
+   const downloadCode = () =>{
     const code = previewRef.current?.getCode() || project?.current_code;
     if(!code) return toast.error('Nothing to download yet');
     triggerDownload(new Blob([code], { type: 'text/html' }), 'index.html');
@@ -251,9 +230,6 @@ const Projects = () => {
 
   // Abort any in-flight generation if the user leaves the editor.
   useEffect(() => () => acRef.current?.abort(), [])
-
-  // Switching to a different project resets the active page back to Home.
-  useEffect(() => { setActiveFile('index.html') }, [projectId])
 
   const regenerate = async () => {
     const ok = await confirm({
@@ -391,13 +367,11 @@ const Projects = () => {
         <div className='flex-1 flex overflow-auto'>
           <Sidebar isMenuOpen={isMenuOpen} project={project} setProject={(p)=>
             setProject(p)} isGenerating={isGenerating} setIsGenerating={setIsGenerating}
-            activePath={activeFile}
           />
           <div className='flex-1 p-2 p1-0'>
             <ProjectPreview ref={previewRef} project={project}
             isGenerating={isGenerating} device={device} streamingHtml={streamHtml}
             statusText={genStatus}
-            activeFile={activeFile} onActiveFileChange={setActiveFile}
             onGenerate={startGeneration} onCancel={cancelGeneration} />
           </div>
         </div>

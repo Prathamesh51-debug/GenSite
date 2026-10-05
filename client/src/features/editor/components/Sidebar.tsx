@@ -14,11 +14,9 @@ interface SidebarProps {
     setProject: (project: Project)=> void;
     isGenerating : boolean;
     setIsGenerating: (isGenerating: boolean)=> void;
-    /** The page currently open in the preview — chat edits target this page. */
-    activePath?: string;
 }
 
-const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating, activePath}: SidebarProps) => {
+const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating}: SidebarProps) => {
   
     const messageRef = useRef<HTMLDivElement>(null)
     const revisionTimer = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -76,7 +74,7 @@ const Sidebar = ({isMenuOpen, project, setProject, isGenerating, setIsGenerating
             fetchProject();
           },10000)
           const {data} = await api.post(`/api/project/revision/${project.id}`,
-            {message: input, path: activePath}
+            {message: input}
           )
           fetchProject();
           emitCreditsChanged();

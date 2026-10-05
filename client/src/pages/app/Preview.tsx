@@ -14,21 +14,18 @@ const Preview = () => {
   const navigate = useNavigate()
   const { projectId, versionId } = useParams();
   const [code, setCode] = useState('');
-  const [files, setFiles] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCode = async () => {
     try {
       if (versionId) {
-        // A specific version's full body (code + multi-page files) is fetched lazily
-        // — the preview list only carries version metadata now.
+        // A specific version's HTML is fetched lazily — the preview list only
+        // carries version metadata.
         const { data } = await api.get(`/api/project/version/${projectId}/${versionId}`)
         setCode(data.code || '')
-        setFiles(data.files ?? null)
       } else {
         const { data } = await api.get(`/api/project/preview/${projectId}`)
         setCode(data.project.current_code || '')
-        setFiles(data.project.files ?? null)
       }
       setLoading(false)
     } catch (error: any) {
@@ -59,7 +56,7 @@ const Preview = () => {
   return (
     <div className="h-screen">
       {code ? (
-        <ProjectPreview project={{ current_code: code, files } as Project}
+        <ProjectPreview project={{ current_code: code } as Project}
           isGenerating={false} showEditorPanel={false} />
       ) : (
         <div className="flex items-center justify-center h-full text-muted-foreground text-sm">

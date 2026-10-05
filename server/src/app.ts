@@ -1,15 +1,15 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from '@/platform/auth/auth.js';
-import prisma from '@/platform/db/prisma.js';
+import { auth } from '@/platform/auth.js';
+import prisma from '@/platform/prisma.js';
 import { parseTrustedOrigins } from '@/core/origins.js';
-import { apiLimiter, authLimiter, signupLimiter } from '@/shared/middleware/rateLimiters.js';
-import { errorHandler, notFoundHandler } from '@/shared/http/errorHandler.js';
-import { LIMITS } from '@/shared/config/constants.js';
-import userRouter from '@/modules/user/interface/user.routes.js';
-import projectRouter from '@/modules/project/interface/project.routes.js';
-import { stripeWebhook } from '@/modules/billing/interface/billing.controller.js';
+import { apiLimiter, authLimiter, signupLimiter } from '@/shared/rateLimiters.js';
+import { errorHandler, notFoundHandler } from '@/shared/errorHandler.js';
+import { LIMITS } from '@/shared/constants.js';
+import userRouter from '@/user/user.routes.js';
+import projectRouter from '@/project/project.routes.js';
+import { stripeWebhook } from '@/billing/billing.controller.js';
 
 // Assemble the Express app (kept separate from bootstrap so it can be imported and tested).
 export const createApp = () => {

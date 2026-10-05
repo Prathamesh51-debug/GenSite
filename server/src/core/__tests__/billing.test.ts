@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock('stripe', () => ({ default: class { checkout = { sessions: {} }; } }));
 
-vi.mock('@/platform/db/prisma.js', () => {
+vi.mock('@/platform/prisma.js', () => {
   const db: any = {
     transaction: {
       create: async ({ data }: any) => {
@@ -33,7 +33,7 @@ vi.mock('@/platform/db/prisma.js', () => {
   return { default: db };
 });
 
-import { billingService } from '@/modules/billing/application/billing.service.js';
+import { billingService } from '@/billing/billing.service.js';
 
 const session = (id: string, metadata: Record<string, string> = {}) =>
   ({ id, metadata: { appId: 'ai-site-builder', userId: 'u1', planId: 'pro', credits: '400', amountCents: '1900', ...metadata } }) as any;

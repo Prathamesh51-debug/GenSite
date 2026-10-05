@@ -39,7 +39,6 @@ model WebsiteProject {
   name                  String
   initial_prompt        String
   current_code          String?
-  files                 Json?   // multi-page: { "index.html": "...", "about.html": "..." }. null = single-file (use current_code)
   model                 String? // chosen generation model id ('auto' or an OpenRouter id); null = auto
   current_version_index String  @default("")
   userId                String
@@ -79,7 +78,6 @@ model Conversation {
 model Version {
   id          String   @id @default(uuid())
   code        String
-  files       Json?    // snapshot of the multi-page file set (null for single-file versions)
   description String?
   timestamp   DateTime @default(now())
   projectId   String

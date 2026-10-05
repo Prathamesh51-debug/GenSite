@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/platform/db/prisma.js', () => ({ default: {} }));
+vi.mock('@/platform/prisma.js', () => ({ default: {} }));
 
-import { acquireProjectLock, releaseProjectLock } from '@/modules/project/domain/project.runtime.js';
+import { acquireProjectLock, releaseProjectLock } from '@/project/project.runtime.js';
 
 const makeDb = () => {
   const row: any = { id: 'p1', userId: 'u1', lockToken: null, lockedUntil: null };
