@@ -21,6 +21,7 @@ const m = vi.hoisted(() => ({
     pruneVersions: vi.fn(),
   },
   createChatCompletion: vi.fn(),
+  obs: { startAction: vi.fn(), endAction: vi.fn() },
 }));
 
 vi.mock('@/project/project.repository.js', () => ({ projectRepository: m.repo }));
@@ -28,6 +29,7 @@ vi.mock('@/core/credits.js', () => m.credits);
 vi.mock('@/project/project.runtime.js', () => ({ ...m.runtime, LOCK_TTL: { generation: 1, edit: 1 } }));
 vi.mock('@/generation/llm.js', () => ({ createChatCompletion: m.createChatCompletion, EDIT_MODEL: 'standard-edit-model' }));
 vi.mock('@/generation/images.js', () => ({ enhanceImages: async (html: string) => html }));
+vi.mock('@/platform/observability.js', () => m.obs);
 
 import { revisionService } from '@/project/revision.service.js';
 import { resolveModel } from '@/generation/models.js';
@@ -87,6 +89,8 @@ describe('makeRevision', () => {
     expect(m.credits.settleCharge).toHaveBeenCalledWith('charge-1');
     expect(m.credits.refundCharge).not.toHaveBeenCalled();
     expect(m.runtime.releaseProjectLock).toHaveBeenCalledWith('p1', 'lock-1');
+    expect(m.obs.startAction).toHaveBeenCalledWith('revision', { userId: 'u1', projectId: 'p1', tier: 'free' });
+    expect(m.obs.endAction).toHaveBeenCalledWith('saved', expect.objectContaining({ changes: 2 }));
   });
 
   it('refuses a request for a different website, refunds, and saves nothing', async () => {
@@ -100,6 +104,7 @@ describe('makeRevision', () => {
     expect(m.repo.createVersion).not.toHaveBeenCalled();
     expect(m.repo.update).not.toHaveBeenCalled();
     expect(m.runtime.releaseProjectLock).toHaveBeenCalledWith('p1', 'lock-1');
+    expect(m.obs.endAction).toHaveBeenCalledWith('refused_new_site', {});
   });
 
   it('refuses a rebuild into another business even when the AI calls it an edit', async () => {
@@ -125,6 +130,7 @@ ${gym}`));
 
     expect(m.credits.refundCharge).toHaveBeenCalledWith('charge-1');
     expect(m.repo.createVersion).not.toHaveBeenCalled();
+    expect(m.obs.endAction).toHaveBeenCalledWith('cut_off', {});
   });
 
   it('does not call the AI when the user cannot pay', async () => {

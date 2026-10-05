@@ -4,6 +4,7 @@ import { extractHtml, looksLikeHtml, tagSectionsIfMissing } from '@/core/html.js
 import { parseEditSummary, stripEditSummary, describeChanges, formatEditHistory } from '@/core/editSummary.js';
 import { measureContentDrift, looksLikeDifferentSite } from '@/core/contentDrift.js';
 import { log } from '@/platform/log.js';
+import { startAction, endAction } from '@/platform/observability.js';
 import { chargeCredits, freeCapReached, refundCharge, settleCharge } from '@/core/credits.js';
 import { CREDIT_COSTS } from '@/shared/constants.js';
 import { AppError, BadRequestError, ConflictError, InsufficientCreditsError, NotFoundError, UpstreamError } from '@/shared/AppError.js';
@@ -31,6 +32,8 @@ export const revisionService = {
     async makeRevision(userId: string, projectId: string, message: string) {
         let chargeId: string | null = null;
         let lockToken: string | null = null;
+        let outcome = 'error';
+        let details: Record<string, unknown> = {};
         try {
             const owned = await projectRepository.findOwnedId(projectId, userId);
             if (!owned) throw new NotFoundError('Project not found');
@@ -40,10 +43,17 @@ export const revisionService = {
 
             const project = await projectRepository.findOwnedWithHistory(projectId, userId);
             if (!project) throw new NotFoundError('Project not found');
+            startAction('revision', { userId, projectId, tier: project.model });
 
-            if (await freeCapReached(userId)) throw new FreeCapError();
+            if (await freeCapReached(userId)) {
+                outcome = 'free_cap_reached';
+                throw new FreeCapError();
+            }
             chargeId = await chargeCredits(userId, CREDIT_COSTS.revision, 'revision');
-            if (!chargeId) throw new InsufficientCreditsError('add more credits to make changes');
+            if (!chargeId) {
+                outcome = 'insufficient_credits';
+                throw new InsufficientCreditsError('add more credits to make changes');
+            }
 
             await projectRepository.addMessage(projectId, 'user', message);
 
@@ -60,12 +70,16 @@ export const revisionService = {
             const raw = response.choices?.[0]?.message?.content;
             const summary = parseEditSummary(raw);
 
-            if (summary.intent === 'new-site') await refuseNewSite(projectId, chargeId);
+            if (summary.intent === 'new-site') {
+                outcome = 'refused_new_site';
+                await refuseNewSite(projectId, chargeId);
+            }
 
             const generated = stripEditSummary(extractHtml(raw));
             const truncated = response.choices?.[0]?.finish_reason === 'length';
 
             if (!looksLikeHtml(generated) || truncated) {
+                outcome = truncated ? 'cut_off' : 'invalid_output';
                 await refundCharge(chargeId);
                 await projectRepository.addMessage(projectId, 'assistant', "I couldn't apply that change reliably, so I kept your current version and refunded your credits. Try rephrasing the request a little more specifically.");
                 throw new UpstreamError('The AI did not return a valid website — your credits were refunded.');
@@ -76,7 +90,11 @@ export const revisionService = {
 
             const drift = measureContentDrift(sourceHtml, enhanced);
             log('edit', { projectId, tier: project.model ?? 'free', model: response?.model ?? null, changes: summary.changes.length, ...drift });
-            if (looksLikeDifferentSite(drift)) await refuseNewSite(projectId, chargeId);
+            details = { changes: summary.changes.length, textChanged: drift.textChanged, brandChanged: drift.brandChanged };
+            if (looksLikeDifferentSite(drift)) {
+                outcome = 'refused_different_business';
+                await refuseNewSite(projectId, chargeId);
+            }
 
             const version = await projectRepository.createVersion({
                 code: enhanced, description: message.slice(0, 60), projectId,
@@ -91,10 +109,12 @@ export const revisionService = {
 
             await settleCharge(chargeId).catch(() => {});
             await pruneVersions(projectId).catch(() => {});
+            outcome = 'saved';
         } catch (err) {
             if (chargeId) await refundCharge(chargeId).catch(() => {});
             throw err;
         } finally {
+            endAction(outcome, details);
             if (lockToken) await releaseProjectLock(projectId, lockToken).catch(() => {});
         }
     },
@@ -104,12 +124,15 @@ export const revisionService = {
     async editElement(userId: string, projectId: string, html: string, message: string) {
         let chargeId: string | null = null;
         let lockToken: string | null = null;
+        let outcome = 'error';
         try {
             const project = await projectRepository.findOwned(projectId, userId);
             if (!project) throw new NotFoundError('Project not found');
+            startAction('element-edit', { userId, projectId, tier: project.model });
 
             const pageSize = project.current_code?.length ?? 0;
             if (pageSize && html.length > pageSize * 0.6) {
+                outcome = 'selection_too_large';
                 throw new BadRequestError('That selection covers most of the page — select a smaller section, or use the chat for page-wide changes.');
             }
 
@@ -129,17 +152,20 @@ export const revisionService = {
             const newHtml = extractHtml(response.choices?.[0]?.message?.content);
             const truncated = response.choices?.[0]?.finish_reason === 'length';
             if (!newHtml || truncated || !/<[a-z][\s\S]*>/i.test(newHtml)) {
+                outcome = truncated ? 'cut_off' : 'invalid_output';
                 await refundCharge(chargeId);
                 throw new UpstreamError('Could not edit that element — credits refunded. Try rephrasing.');
             }
 
             const enhanced = tagSectionsIfMissing(await enhanceImages(newHtml).catch(() => newHtml));
             await settleCharge(chargeId).catch(() => {});
+            outcome = 'saved';
             return enhanced;
         } catch (err) {
             if (chargeId) await refundCharge(chargeId).catch(() => {});
             throw err;
         } finally {
+            endAction(outcome);
             if (lockToken) await releaseProjectLock(projectId, lockToken).catch(() => {});
         }
     },

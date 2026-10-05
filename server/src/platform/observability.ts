@@ -15,26 +15,77 @@ const langfuse =
       })
     : null;
 
-export const traceGeneration = async (data: {
-  model: string;
-  latencyMs: number;
-  usage?: unknown;
-  success: boolean;
-  requested?: string;
-}): Promise<void> => {
-  if (!langfuse) return;
+interface ActionMeta {
+  userId?: string;
+  projectId?: string;
+  tier?: string | null;
+}
+
+export const startAction = (name: string, meta: ActionMeta): void => {
+  const context = currentContext();
+  if (!langfuse || !context) return;
   try {
-    const trace = langfuse.trace({ name: 'website-generation' });
-    trace.generation({
-      name: 'chat-completion',
-      model: data.model,
-      usage: data.usage as any,
-      metadata: { latencyMs: data.latencyMs, success: data.success, requested: data.requested },
+    context.trace = langfuse.trace({
+      name,
+      userId: meta.userId,
+      sessionId: meta.projectId,
+      tags: [meta.tier ?? 'free'],
+      metadata: { requestId: context.requestId, projectId: meta.projectId },
     });
-    await langfuse.flushAsync();
   } catch {
     /* never let telemetry break a request */
   }
+};
+
+export const endAction = (outcome: string, details: Record<string, unknown> = {}): void => {
+  const context = currentContext();
+  if (!context?.trace) return;
+  try {
+    context.trace.update({ output: { outcome, ...details } });
+  } catch {
+    /* never let telemetry break a request */
+  }
+  context.trace = undefined;
+};
+
+export const traceGeneration = (data: {
+  model: string;
+  latencyMs: number;
+  usage?: any;
+  costUsd?: number | null;
+  provider?: string | null;
+  success: boolean;
+  requested?: string;
+}): void => {
+  if (!langfuse) return;
+  try {
+    const parent = currentContext()?.trace ?? langfuse.trace({ name: 'llm-call' });
+    const endTime = new Date();
+    parent.generation({
+      name: 'chat-completion',
+      model: data.model,
+      startTime: new Date(endTime.getTime() - data.latencyMs),
+      endTime,
+      usage: {
+        input: data.usage?.prompt_tokens,
+        output: data.usage?.completion_tokens,
+        total: data.usage?.total_tokens,
+        totalCost: data.costUsd ?? undefined,
+      },
+      metadata: { requested: data.requested, provider: data.provider, fallback: !!data.requested && data.requested !== data.model },
+      level: data.success ? 'DEFAULT' : 'ERROR',
+    });
+  } catch {
+    /* never let telemetry break a request */
+  }
+};
+
+export const flushTraces = async (timeoutMs = 3000): Promise<void> => {
+  if (!langfuse) return;
+  await Promise.race([
+    langfuse.shutdownAsync().catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, timeoutMs).unref()),
+  ]);
 };
 
 // ---------- Sentry: server error monitoring ----------

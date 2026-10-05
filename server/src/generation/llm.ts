@@ -67,7 +67,15 @@ export const createChatCompletion = async (
           tokens: res?.usage?.total_tokens ?? null,
           costUsd: res?.usage?.cost ?? null,
         });
-        traceGeneration({ model, latencyMs: Date.now() - started, usage: res?.usage, success: true, requested }).catch(() => {});
+        traceGeneration({
+          model,
+          latencyMs: Date.now() - started,
+          usage: res?.usage,
+          costUsd: res?.usage?.cost ?? null,
+          provider: res?.provider ?? null,
+          success: true,
+          requested,
+        });
         return res;
       } catch (error: any) {
         lastError = error;

@@ -195,7 +195,7 @@ The tutorial-era eye-candy was stripped for a lighter bundle and lower GPU load 
 | **AI** | OpenRouter (OpenAI-compatible SDK) — free tier (`gpt-oss-120b` + `qwen3-coder` fallback) · premium tier (`gpt-5-mini`) |
 | **Images** | Pexels API (topic-matching stock photos) |
 | **Payments** | Stripe (Checkout + signed webhooks) |
-| **Observability** | Langfuse (LLM traces) · Sentry (errors) — both optional, env-gated |
+| **Observability** | JSON logs tagged with a per-request ID · Sentry (unexpected errors) · Langfuse (one trace per AI action with tokens, cost and outcome) — Sentry/Langfuse turn on with their env keys |
 | **Testing / CI** | Vitest · GitHub Actions (lint · typecheck · test) |
 | **Hosting** | Vercel (client) · Render (API) · Supabase (DB) |
 
@@ -213,6 +213,7 @@ The interesting parts are the trade-offs, not the happy path:
 - **Sign-up abuse protection.** Free credits attract throwaway accounts, so sign-ups block disposable email domains, are rate-limited per IP, can require a Cloudflare Turnstile captcha, and AI usage by never-paid accounts has a daily circuit breaker (`FREE_DAILY_AI_CAP`).
 - **Idempotent Stripe billing.** Credits are granted from the **signature-verified webhook**, keyed by the unique `stripeSessionId`; refunds/disputes claw credits back exactly once, all inside DB transactions.
 - **Security by default.** Hand-set security headers (`nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS in prod), a CORS + Origin-based CSRF check driven by a trusted-origins allowlist, tiered rate limiters, a bounded JSON body, and a `/healthz` probe that also reports DB reachability.
+- **Observability.** Every request gets an ID (returned as `X-Request-Id` and in 500 responses) that tags every log line via `AsyncLocalStorage`. Unexpected errors go to Sentry; each generation, chat edit and element edit is one Langfuse trace with its AI calls nested inside (tokens, cost, provider, fallbacks) and its outcome (saved, refunded, refused…).
 - **Connection pooling.** Runtime traffic uses Supabase's **transaction pooler (PgBouncer)** via `DATABASE_URL`; Prisma migrations use a **direct connection** (`DIRECT_URL`) — avoiding connection exhaustion.
 
 ## ⚡ Getting started

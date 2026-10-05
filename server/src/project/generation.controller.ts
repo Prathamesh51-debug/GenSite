@@ -9,7 +9,7 @@ import {
 } from '@/project/project.runtime.js';
 import { generationService } from '@/project/generation.service.js';
 import { log } from '@/platform/log.js';
-import { reportError } from '@/platform/observability.js';
+import { reportError, startAction, endAction } from '@/platform/observability.js';
 
 export const streamGeneration = async (req: Request, res: Response) => {
     const userId = req.userId!;
@@ -17,6 +17,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
     let chargeId: string | null = null;
     let lockToken: string | null = null;
     let finished = false;
+    let outcome = 'error';
 
     const abort = new AbortController();
     req.on('close', () => { if (!finished) abort.abort(); });
@@ -45,8 +46,10 @@ export const streamGeneration = async (req: Request, res: Response) => {
         if (project.current_code) { send({ type: 'done', html: project.current_code }); return res.end(); }
 
         generating.set(projectId, abort);
+        startAction('generate', { userId, projectId, tier: project.model });
 
         if (await freeCapReached(userId)) {
+            outcome = 'free_cap_reached';
             send({ type: 'error', message: 'Free generation capacity is used up for today. Please try again tomorrow or add credits.' });
             return res.end();
         }
@@ -54,6 +57,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         const cost = generationCost(project.model);
         chargeId = await chargeCredits(userId, cost, 'generate');
         if (!chargeId) {
+            outcome = 'insufficient_credits';
             send({ type: 'error', message: `You need at least ${cost} credits to generate. Please add more.` });
             return res.end();
         }
@@ -65,6 +69,7 @@ export const streamGeneration = async (req: Request, res: Response) => {
         });
 
         if (!result) {
+            outcome = 'failed_refunded';
             await refundCharge(chargeId).catch(() => {});
             chargeId = null;
             await projectRepository.addMessage(projectId, 'assistant', "I couldn't generate your website this time and refunded your credits. Please try again, ideally with a bit more detail.");
@@ -91,15 +96,18 @@ export const streamGeneration = async (req: Request, res: Response) => {
         await pruneVersions(projectId).catch(() => {});
 
         finished = true;
+        outcome = surcharge ? 'done_downgraded' : 'done';
         send({ type: 'done', html });
         res.end();
     } catch (error: any) {
         if (chargeId) await refundCharge(chargeId).catch(() => {});
+        outcome = abort.signal.aborted ? 'cancelled' : 'error';
         log('generation_failed', { projectId, message: error?.message }, 'error');
         if (!abort.signal.aborted) reportError(error, { projectId });
         try { send({ type: 'error', message: 'Generation failed. Please try again.' }); } catch {}
         res.end();
     } finally {
+        endAction(outcome);
         if (lockToken) {
             if (generating.get(projectId) === abort) generating.delete(projectId);
             await releaseProjectLock(projectId, lockToken).catch(() => {});
