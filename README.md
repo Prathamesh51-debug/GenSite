@@ -1,7 +1,7 @@
 # GenSite
 
 An AI website builder. Describe a business in one sentence and GenSite generates a complete,
-responsive website you can watch being built, refine by chatting with it, roll back, and publish.
+responsive website you can refine by chatting with it, roll back, and publish.
 
 **[Live demo](https://ai-website-builder-prathamesh-three-amber.vercel.app)** &nbsp;·&nbsp;
 [![CI](https://github.com/Prathamesh51-debug/GenSite/actions/workflows/ci.yml/badge.svg)](https://github.com/Prathamesh51-debug/GenSite/actions/workflows/ci.yml)
